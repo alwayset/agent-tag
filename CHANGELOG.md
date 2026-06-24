@@ -6,6 +6,27 @@ adhere to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-24
+
+Launch-readiness pass; first verified production run.
+
+### Added
+- **Supervised service** — `agent-tag service install/uninstall/status` registers a
+  keep-alive launchd agent (macOS) or emits a systemd unit (Linux) so the bot runs
+  at login and restarts on crash, surviving reboots.
+- **Dedicated Lark custom-app path verified end-to-end** — a published custom app
+  connects over a WebSocket long-connection and answers real DMs/@-mentions grounded
+  in the ingested wiki, independent of any other bot.
+- **PyPI packaging** — release-triggered `publish.yml` (OIDC trusted publishing), `RELEASING.md`.
+- **Launch assets** — `docs/launch.md` (Show HN + thread), `docs/comparison.md` (vs Claude Tag).
+- Test suite expanded to **70 tests** (orchestrator, settings, store, ingest, Lark helpers).
+
+### Fixed
+- **Lark adapter / lark-oapi embedding** — the SDK's module-level event loop (captured
+  at import = the host app's main loop) collided with `run_until_complete`. The WS
+  client is now constructed and started on a worker thread with a fresh loop repointed
+  via the module global, so the long-connection works inside an async app.
+
 ## [0.1.0] — 2026-06-24
 
 First public release. An open, self-hosted, agent-agnostic AI teammate that lives
@@ -32,5 +53,6 @@ in your group chats — Lark-first, with Slack and Discord adapters.
 - **Persistence** — a single-file SQLite store (default), zero infrastructure.
 - **Deploy** — `Dockerfile` + `docker-compose.yml`, one-command `docker compose up`.
 
-[Unreleased]: https://github.com/alwayset/agent-tag/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alwayset/agent-tag/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/alwayset/agent-tag/releases/tag/v0.2.0
 [0.1.0]: https://github.com/alwayset/agent-tag/releases/tag/v0.1.0

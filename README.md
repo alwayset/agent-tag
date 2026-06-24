@@ -13,6 +13,18 @@ The wedge vs Anthropic's "Claude Tag": Agent Tag is **open** (Apache-2.0) and **
 
 📖 **Landing page & docs:** <https://alwayset.github.io/agent-tag>
 
+> **Status:** beta — v0.1.0, live in production use.
+
+## See it live
+
+A dedicated **Agent Tag** Lark app (its own bot, separate from any other assistant) connects to Lark over a WebSocket long connection and serves a real group. In a direct message it was asked:
+
+> *"What's our YouTube/Google API auth compliance policy?"*
+
+It answered grounded in the org's own ingested Lark wiki — retrieving the relevant chunk from the FTS5-indexed corpus, blending it into the reply, and **citing the source doc by title** — rather than guessing from the model's prior. That grounding-on-your-own-docs path is the wedge: the same `@`-mention against a model with no corpus would only have a generic answer.
+
+This is the end-to-end loop the project is built around: ingest your wiki (`agent-tag ingest --space <id>`), add the bot to a channel, `@`-mention or DM it, and get an answer cited back to your documentation. Setup is in [`docs/lark-setup.md`](docs/lark-setup.md); the landing page has more: <https://alwayset.github.io/agent-tag>.
+
 ## Features
 
 - **Multiplayer shared teammate** — one bot serves a whole group; users auto-enroll when they first `@`-mention it.

@@ -2,7 +2,21 @@
 
 Agent Tag is a single Python process (`agent-tag serve`) that runs the admin
 console, the enabled chat adapters, and the ambient scheduler in one event
-loop. Two supported ways to run it.
+loop. Run it with Docker, as a supervised OS service, or directly.
+
+## Supervised service (keep it running, survive reboots)
+
+```bash
+agent-tag service install      # launchd (macOS) or a systemd unit (Linux)
+agent-tag service status       # show PID + log path
+agent-tag service uninstall
+```
+
+`install` registers a keep-alive service that starts `agent-tag serve` at login
+and restarts it if it crashes. It bakes the current `PATH` into the service so
+backends like the local `codex` / `claude` CLI remain reachable; logs go to
+`~/Library/Logs/agent-tag.log` (macOS). Flags `--host/--port/--db/--token` match
+`serve`. On Linux it writes a `--user` systemd unit and prints the enable command.
 
 ## Docker (recommended)
 

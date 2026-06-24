@@ -24,6 +24,15 @@ def main(argv: list[str] | None = None) -> int:
     serve_p.add_argument("--db", help="sqlite db path (default agent_tag.db)")
     serve_p.add_argument("--token", help="require this admin token to access the console")
 
+    svc_p = sub.add_parser(
+        "service", help="run as a supervised background service (survives reboot)"
+    )
+    svc_p.add_argument("action", choices=["install", "uninstall", "status"])
+    svc_p.add_argument("--host", default="127.0.0.1")
+    svc_p.add_argument("--port", type=int, default=8765)
+    svc_p.add_argument("--db", default="agent_tag.db")
+    svc_p.add_argument("--token")
+
     run_p = sub.add_parser("run", help="quick local chat (console)")
     run_p.add_argument("--adapter", help=f"IM adapter {adapters_available()}")
     run_p.add_argument("--backend", help=f"agent backend {backends_available()}")
@@ -72,6 +81,15 @@ def main(argv: list[str] | None = None) -> int:
             f"{store.corpus_count(core.workspace_id)} chunks."
         )
         return 0
+
+    if args.cmd == "service":
+        from agent_tag import service as svc
+
+        if args.action == "install":
+            return svc.install(args.host, args.port, args.db, args.token)
+        if args.action == "uninstall":
+            return svc.uninstall()
+        return svc.status()
 
     if args.cmd == "serve":
         if args.host:

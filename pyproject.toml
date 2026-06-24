@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-tag"
-version = "0.1.0"
+version = "0.2.0"
 description = "Open, self-hosted, agent-agnostic AI teammate for group chat (Lark / Slack / Discord) that indexes your existing docs."
 readme = "README.md"
 requires-python = ">=3.11"
