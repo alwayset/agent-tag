@@ -9,6 +9,7 @@ namespace from trusted server-side turn context. The agent-facing memory *tool*
 (core/memory.py) is bound to one namespace and exposes NO namespace parameter,
 so a prompt-injected agent cannot read or write across channels.
 """
+
 from __future__ import annotations
 
 import abc
@@ -71,6 +72,7 @@ class Store(abc.ABC):
     @abc.abstractmethod
     def memory_search(self, namespace: str, query: str, limit: int = 10) -> list[MemoryItem]:
         """Return memory items for `namespace` ONLY, regardless of `query`."""
+
     @abc.abstractmethod
     def list_memory(self, namespace: str, limit: int = 200) -> list[MemoryItem]: ...
     @abc.abstractmethod
@@ -108,10 +110,12 @@ class Store(abc.ABC):
     @abc.abstractmethod
     def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
         """Full-text retrieval over the workspace's ingested docs ONLY."""
+
     @abc.abstractmethod
     def corpus_clear(self, workspace_id: str, source: str | None = None) -> int: ...
     @abc.abstractmethod
     def corpus_docs(self, workspace_id: str) -> list[dict]:
         """Distinct docs: [{doc_id, title, url, source, chunks}], for the UI."""
+
     @abc.abstractmethod
     def corpus_count(self, workspace_id: str) -> int: ...

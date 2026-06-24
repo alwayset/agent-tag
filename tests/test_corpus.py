@@ -1,4 +1,5 @@
 """Corpus ingestion: chunking + workspace-fenced retrieval on both stores."""
+
 import os
 import tempfile
 
@@ -20,12 +21,39 @@ def test_chunk_text_splits_long_and_keeps_short():
 
 
 def _seed(store):
-    store.corpus_add(CorpusChunk("ws1", "lark-wiki:s1", "d1", "Deploy Guide",
-                                 "http://x/d1", 0, "staging deploy uses the deploy-staging workflow"))
-    store.corpus_add(CorpusChunk("ws1", "lark-wiki:s1", "d2", "Onboarding",
-                                 "http://x/d2", 0, "new hires get a laptop and an email account"))
-    store.corpus_add(CorpusChunk("ws2", "lark-wiki:s9", "d9", "Other Workspace",
-                                 "http://x/d9", 0, "deploy secrets for the other team"))
+    store.corpus_add(
+        CorpusChunk(
+            "ws1",
+            "lark-wiki:s1",
+            "d1",
+            "Deploy Guide",
+            "http://x/d1",
+            0,
+            "staging deploy uses the deploy-staging workflow",
+        )
+    )
+    store.corpus_add(
+        CorpusChunk(
+            "ws1",
+            "lark-wiki:s1",
+            "d2",
+            "Onboarding",
+            "http://x/d2",
+            0,
+            "new hires get a laptop and an email account",
+        )
+    )
+    store.corpus_add(
+        CorpusChunk(
+            "ws2",
+            "lark-wiki:s9",
+            "d9",
+            "Other Workspace",
+            "http://x/d9",
+            0,
+            "deploy secrets for the other team",
+        )
+    )
 
 
 @pytest.mark.parametrize("make", [lambda: InMemoryStore(), "sqlite"])

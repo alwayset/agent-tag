@@ -34,6 +34,7 @@ https://github.com/openai/openai-python  (§Async usage, §Streaming responses)
 Usage stats while streaming:
 https://community.openai.com/t/usage-stats-now-available-when-using-streaming-with-the-chat-completions-api-or-completions-api/738156
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

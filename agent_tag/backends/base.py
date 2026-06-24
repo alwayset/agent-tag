@@ -8,6 +8,7 @@ while reusing one harness is exactly this seam.
 A backend receives a `TurnRequest` (system + messages + optional tools/metadata)
 and streams `Delta`s back. Token accounting is normalized via `report_usage`.
 """
+
 from __future__ import annotations
 
 import abc
@@ -17,7 +18,7 @@ from dataclasses import dataclass, field
 
 @dataclass(slots=True)
 class Delta:
-    type: str                 # "text" | "tool_call" | "done" | "error"
+    type: str  # "text" | "tool_call" | "done" | "error"
     text: str = ""
     data: dict | None = None
 
@@ -31,7 +32,7 @@ class Usage:
 @dataclass(slots=True)
 class TurnRequest:
     system: str
-    messages: list[dict]                      # [{"role": "user"|"assistant", "content": str}]
+    messages: list[dict]  # [{"role": "user"|"assistant", "content": str}]
     tools: list[dict] = field(default_factory=list)
     model: str | None = None
     max_tokens: int = 1024

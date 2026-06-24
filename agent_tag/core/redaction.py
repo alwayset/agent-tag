@@ -6,15 +6,16 @@ legitimately retrieved). It is best-effort — market it as such, not as a hard
 guarantee. Rules are intentionally simple/regex-based for the MVP; a deployer
 ports their own (e.g. salary / equity / cap-table patterns).
 """
+
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
 
 DEFAULT_PATTERNS: list[str] = [
-    r"\bsk-[A-Za-z0-9_\-]{16,}\b",                 # API keys
-    r"\bxox[baprs]-[A-Za-z0-9\-]{10,}\b",          # Slack tokens
-    r"\b\d{3}-\d{2}-\d{4}\b",                       # US SSN-shaped
+    r"\bsk-[A-Za-z0-9_\-]{16,}\b",  # API keys
+    r"\bxox[baprs]-[A-Za-z0-9\-]{10,}\b",  # Slack tokens
+    r"\b\d{3}-\d{2}-\d{4}\b",  # US SSN-shaped
     r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b",  # emails (example; tune per deploy)
 ]
 

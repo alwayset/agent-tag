@@ -10,6 +10,7 @@ Commands:
   /quit             exit
 Any other line is a message (treated as @-mentioning the bot).
 """
+
 from __future__ import annotations
 
 import asyncio

@@ -1,4 +1,5 @@
 """Per-channel token budget kill-switch."""
+
 from agent_tag.adapters.base import Adapter, InboundEvent
 from agent_tag.backends.echo import EchoBackend
 from agent_tag.core.memory import MemoryService
@@ -32,17 +33,34 @@ def _build(budget):
     ch, pol = ws.bind_channel(wsp.id, "console", "eng", "eng")
     pol.token_budget = budget
     store.put_policy(pol)
-    router = Router(ws, default_org_id=org.id, default_workspace_id=wsp.id,
-                    default_backend="echo", auto_bind=True, require_mention=True)
-    orch = TurnOrchestrator(router=router, memory=MemoryService(store),
-                            redactor=Redactor(enabled=False),
-                            backends={"echo": EchoBackend()}, default_backend="echo")
+    router = Router(
+        ws,
+        default_org_id=org.id,
+        default_workspace_id=wsp.id,
+        default_backend="echo",
+        auto_bind=True,
+        require_mention=True,
+    )
+    orch = TurnOrchestrator(
+        router=router,
+        memory=MemoryService(store),
+        redactor=Redactor(enabled=False),
+        backends={"echo": EchoBackend()},
+        default_backend="echo",
+    )
     return store, orch, ch
 
 
 def _ev(mid="1"):
-    return InboundEvent(platform="console", channel_id="eng", user_id="alice",
-                        user_display_name="alice", text="hi @bot", mentions_bot=True, message_id=mid)
+    return InboundEvent(
+        platform="console",
+        channel_id="eng",
+        user_id="alice",
+        user_display_name="alice",
+        text="hi @bot",
+        mentions_bot=True,
+        message_id=mid,
+    )
 
 
 async def test_budget_blocks_when_exceeded():

@@ -43,6 +43,7 @@ Verified CLI flags (2026-06):
     Docs: https://developers.openai.com/codex/noninteractive
           https://developers.openai.com/codex/cli/reference
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -126,9 +127,11 @@ class CliAcpBackend(BackendAdapter):
         system = (req.system or "").strip()
         # The CLIs are autonomous agents; steer them to behave as a chat teammate
         # that answers from the supplied context rather than going tool/file hunting.
-        guard = ("\n\n(Answer the message above directly and concisely as a chat reply, using ONLY "
-                 "the context provided above. Do NOT read local files, run shell/git commands, "
-                 "search the web, or use any tools.)")
+        guard = (
+            "\n\n(Answer the message above directly and concisely as a chat reply, using ONLY "
+            "the context provided above. Do NOT read local files, run shell/git commands, "
+            "search the web, or use any tools.)"
+        )
         if system:
             return f"{system}\n\n---\n\n{user_text}{guard}"
         return f"{user_text}{guard}"

@@ -4,6 +4,7 @@ An Adapter normalizes a chat platform (Lark / Slack / Discord / console) into a
 common `InboundEvent` stream and a `send` method. Implementing a new platform =
 implementing this interface; nothing else in the system changes.
 """
+
 from __future__ import annotations
 
 import abc
@@ -20,9 +21,9 @@ class FileRef:
 
 @dataclass(slots=True)
 class InboundEvent:
-    platform: str                       # "lark" | "slack" | "discord" | "console"
-    channel_id: str                     # platform-native channel/chat id
-    user_id: str                        # platform-native sender id
+    platform: str  # "lark" | "slack" | "discord" | "console"
+    channel_id: str  # platform-native channel/chat id
+    user_id: str  # platform-native sender id
     text: str
     mentions_bot: bool = False
     thread_id: str | None = None

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Discussions
+    url: https://github.com/alwayset/agent-tag/discussions
+    about: Ask questions, share setups, and discuss ideas before filing an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/alwayset/agent-tag/security/advisories/new
+    about: Please report vulnerabilities privately — do not open a public issue.

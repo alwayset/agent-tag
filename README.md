@@ -1,95 +1,50 @@
 # Agent Tag
 
-> ⚠️ Working name. Open, **agent-agnostic**, **platform-agnostic** AI teammate that lives in a group chat — a self-hostable answer to the "AI teammate in your channel" pattern, for **Lark / Slack / Discord**, on **any model**.
+**An open, self-hosted AI teammate that lives in your group chat — Lark-first, on any model, grounded in your own docs.**
 
-Agent Tag is **not** a coding-agent bridge ("control my CLI from chat"). It's a shared teammate that a whole team `@`-mentions, that keeps **per-channel isolated memory**, and that admins can **govern** — built on a harness you *rent* (Claude / Codex / any ACP agent), not one it reimplements.
+[![CI](https://github.com/alwayset/agent-tag/actions/workflows/ci.yml/badge.svg)](https://github.com/alwayset/agent-tag/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-## Status
+Agent Tag is a shared teammate that a whole team `@`-mentions in a group chat. It keeps **per-channel isolated memory**, answers from **your existing knowledge base** (it ingests and indexes your Lark wiki), and gives admins real **governance** — a per-channel tool allowlist, token budgets, an append-only audit log, and outbound redaction.
 
-**MVP walking skeleton.** Runs end-to-end *today* with zero credentials via a console adapter + echo backend. Platform adapters (Lark/Slack/Discord) and real model backends (Claude/Codex) are scaffolded against locked interfaces and need credentials to live-test. The headline differentiator — **ingesting + indexing your existing corpus** (Lark wiki / Google Drive / Notion) — is the next milestone, tracked in [`TODO.md`](TODO.md).
+The wedge vs Anthropic's "Claude Tag": Agent Tag is **open** (Apache-2.0) and **self-hosted**, runs on **any model** (bring your own Anthropic/OpenAI key, or your local Claude Code / Codex CLI), is **Lark-first** (Slack and Discord adapters too), and **reads your existing docs** instead of starting from an empty context — none of which Claude Tag does.
+
+📖 **Landing page & docs:** <https://alwayset.github.io/agent-tag>
+
+## Features
+
+- **Multiplayer shared teammate** — one bot serves a whole group; users auto-enroll when they first `@`-mention it.
+- **Per-channel isolated memory** — distilled notes are capability-fenced per channel; the memory tool has no namespace parameter, so the agent cannot read or write across channels.
+- **Corpus ingestion** — crawl and index your existing **Lark wiki** into a SQLite + FTS5 store so replies are grounded in your real docs.
+- **Governance** — per-channel tool allowlist, per-channel token budgets with a kill-switch, an append-only audit log, and best-effort outbound redaction/DLP.
+- **Ambient nudges** — a deterministic, opt-in, time-based proactive scheduler (no hidden LLM gate); content is suppressed when the model returns `SKIP`.
+- **Admin web console** — the control plane for connections, workspaces, knowledge, and governance. No config files to hand-edit.
+- **Any model** — backends for the Anthropic and OpenAI APIs (BYO metered key), plus a local coding-plan CLI backend (Claude Code / Codex) for personal dogfooding.
+- **Self-hosted, Apache-2.0** — a single Python process and one SQLite file. Your data and keys never leave your host.
 
 ## Quickstart
 
 Two ways to stand up the admin console at **http://localhost:8765**. Pick one.
 
-### (a) Docker — `docker compose up`
+### Docker
 
 ```bash
-cp .env.example .env      # creates the env file compose reads (defaults are fine to start)
+cp .env.example .env      # compose reads this; defaults are fine to start
 docker compose up         # builds the image, starts the runtime + admin console
 ```
 
-Open **http://localhost:8765**. The SQLite database (settings, memory, audit) persists in a named Docker volume across restarts.
+The SQLite database (settings, memory, audit) persists in a named Docker volume across restarts.
 
-### (b) pip — `agent-tag serve`
+### pip
 
 Requires Python 3.11+.
 
 ```bash
-pip install -e '.[all]'   # web admin console + all chat adapters + all LLM backends
-agent-tag serve           # admin console on 127.0.0.1:8765 (use --host 0.0.0.0 to expose)
+pip install -e '.[all]'   # web console + all chat adapters + all LLM backends
+agent-tag serve           # admin console on http://localhost:8765
 ```
-
-Open **http://localhost:8765**.
-
-### Then: configure from the console
-
-The admin console is the control plane — no config files to hand-edit. The flow:
-
-1. **Connections** — enter your Lark credentials (App ID / App Secret / domain) and pick a **backend** (the LLM that powers replies). See [backend modes](#backend-modes) below.
-2. **Workspace** — bind your Lark group: the bot auto-enrolls users when they first `@`-mention it, so one teammate serves the whole group.
-3. **Chat** — `@`-mention the bot in the bound group. It replies with per-channel isolated memory and governed tools.
-
-> Connection changes take effect on the **next `serve` start** — the console shows a reminder. After editing Connections, restart the process (`docker compose restart` or re-run `agent-tag serve`) to (re)bind adapters.
-
-For Lark app creation (scopes, bot, long-connection events, adding the bot to a group), see **[`docs/lark-setup.md`](docs/lark-setup.md)**. For deployment, env vars, the admin token, and backups, see **[`docs/deploy.md`](docs/deploy.md)**.
-
-### Recommended Lark setup — Lark CLI
-
-There are **two Lark adapters**, selected by `AGENT_TAG_ADAPTER` (or the
-**Enabled chat platforms** field in the console):
-
-| Adapter | What it is | When to use |
-|---------|-----------|-------------|
-| **`larkcli`** (recommended, smooth) | Rides the official [Lark CLI](https://github.com/larksuite/cli) — you authorize once with a click-a-link OAuth and Agent Tag shells out to the `lark-cli` binary for events, sending, and the corpus crawl. No app scopes to hand-configure. | The fast path for most setups. |
-| **`lark`** (advanced) | A custom Lark app via the `lark-oapi` SDK over a WebSocket long connection. You create the app, add scopes, and publish a version yourself. | Containerized / headless deploys, or when you can't run the `lark-cli` binary on the host. |
-
-The smooth path:
-
-```bash
-npm install -g @larksuite/cli   # or build/install per the lark-cli README
-lark-cli config init            # one-time: enter app credentials
-lark-cli auth login             # opens a click-to-authorize link in your browser
-```
-
-Then point Agent Tag at it and start the runtime:
-
-```bash
-export AGENT_TAG_ADAPTER=larkcli   # or set "Enabled chat platforms" = larkcli in the console
-agent-tag serve
-```
-
-`lark-cli` stores its auth in `~/.lark-cli/`; Agent Tag reads that to act as you.
-
-> **Single-instance event lock.** The `larkcli` adapter consumes the Lark event
-> stream through `lark-cli`. Don't run a **second** `lark-cli` event consumer
-> (another `agent-tag serve`, or a separate `lark-cli` long-connection session)
-> against the same auth at the same time — only one consumer should hold the
-> event stream, or events will be split/dropped.
-
-### Knowledge base (ingest your Lark wiki)
-
-Agent Tag can ingest and index your existing **Lark wiki** so the teammate
-answers from your corpus. This rides the same `lark-cli` auth as the `larkcli`
-adapter, so authorize Lark CLI first (above).
-
-```bash
-agent-tag lark-spaces                 # list your Lark wiki spaces (space_id + name)
-agent-tag ingest --space <space_id>   # crawl + index one space into the knowledge base
-```
-
-The admin console also has a **Knowledge** page showing what's indexed (docs,
-chunks, sources) and lets you ingest a space from the browser.
 
 ### Zero-credential demo
 
@@ -104,40 +59,95 @@ agent-tag run --adapter console --backend echo
 /channel eng-help
 our staging deploy uses the deploy-staging workflow
 /user bob
-what did alice say about deploy?      # bob, same channel → shared teammate sees it
+what did alice say about deploy?      # same channel → the shared teammate sees it
 /channel sales
 what did alice say about deploy?      # different channel → isolated, nothing leaks
 ```
 
-## Backend modes
+## Onboard your org on Lark
 
-A *backend* is the LLM harness Agent Tag rents to produce replies. Two ways to power it:
+Five steps — the smooth path rides the official [Lark CLI](https://github.com/larksuite/cli), so there are no app scopes to hand-configure. Full walkthrough in [`docs/lark-setup.md`](docs/lark-setup.md).
 
-| Mode | How | Use it for |
-|------|-----|-----------|
-| **BYO API key** (recommended) | Set an `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) in Connections; pick backend `claude` or `openai`. | Production. A real metered API key billed per token. |
-| **Coding-plan via local CLI** | Pick backend `cli`; Agent Tag shells out to a local **Claude Code** / **Codex** CLI already logged in on the host. | **Personal dogfooding only.** |
+1. **Install** — get Agent Tag and the Lark CLI, the whole toolchain:
+   ```bash
+   pip install -e '.[all]'
+   npm install -g @larksuite/cli
+   ```
+2. **Authorize Lark** — run one command, click the link it prints, approve in your browser. That's the consent:
+   ```bash
+   lark-cli config init    # one-time: enter app credentials
+   lark-cli auth login     # opens a click-to-authorize link
+   ```
+3. **Connect a model** — start the runtime and set your backend once in the console:
+   ```bash
+   export AGENT_TAG_ADAPTER=larkcli
+   agent-tag serve         # open http://localhost:8765 → Connections
+   ```
+4. **Ingest your knowledge** — index a Lark wiki space so the teammate answers from your real docs (or do it from the console's **Knowledge** page):
+   ```bash
+   agent-tag lark-spaces                 # list your wiki spaces (space_id + name)
+   agent-tag ingest --space <space_id>   # crawl + index one space
+   ```
+5. **Go live** — add the bot to a Lark group and `@`-mention it. Anyone in the channel can ask; it replies in the thread, grounded in your knowledge and per-channel memory.
 
-> **ToS note.** Agent Tag ships **no billing code** and is **BYO metered API key**. It does **not** reuse "included" subscription / coding-plan tokens: powering a shared, multi-user, automated bot off a Claude (Max/Team) or OpenAI/ChatGPT subscription seat is prohibited by both vendors (Anthropic Consumer Terms §3.7 "OpenClaw" rule; OpenAI single-End-User). The local-CLI backend exists for **personal dogfooding only** and is labeled as such in the console.
-
-To smoke-test wiring without any LLM, use backend `echo` (parrots input).
+> **Coding-plan vs API key (ToS).** For a shared, multi-user, hosted bot, use a **BYO metered API key** (`ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, backend `claude` / `openai`). Powering a shared bot off a subscription / coding-plan seat is prohibited by both Anthropic (Consumer Terms §3.7) and OpenAI, so the local-CLI backend (`cli`, your logged-in Claude Code / Codex) is for **personal dogfooding only** and is labeled as such in the console.
 
 ## Architecture
 
 ```
-IM (Lark/Slack/Discord/console)  ──Adapter──►  Agent Tag Core  ──BackendAdapter(ACP)──►  Claude / Codex / any agent
-                                                   │
-                          Router → Workspace/Org/User → ChannelPolicy → Orchestrator
-                          (single-writer lock + idempotency) → namespace-fenced Memory
-                          → Redaction/DLP → send;  append-only Audit
+IM (Lark / Slack / Discord / console)
+        │  Adapter  → normalized InboundEvent + send
+        ▼
+   Agent Tag Core
+     Router → Workspace / Org / User → ChannelPolicy → Orchestrator
+     (single-writer lock + idempotency)
+       ├─ capability-fenced Memory (per channel)
+       ├─ Governance: tool allowlist · token budget · audit · redaction/DLP
+       └─ Corpus retrieval (SQLite + FTS5)
+        │  BackendAdapter
+        ▼
+   Backend: Claude API · OpenAI API · local coding-plan CLI (ACP) · echo
 ```
 
-- **Adapter** (`agent_tag/adapters/`) — one chat platform → normalized `InboundEvent` + `send`.
-- **BackendAdapter** (`agent_tag/backends/`) — rent a harness; stay model-agnostic behind one seam.
-- **WorkspaceService** (`agent_tag/workspace/`) — Organization → Workspace → Channel; users auto-enroll on first `@`, so one teammate serves a whole org.
-- **Memory** (`agent_tag/core/memory.py`) — distilled notes, **capability-fenced per channel**: the agent's memory tool has no namespace parameter, so it cannot read/write across channels.
-- **Orchestrator** (`agent_tag/core/orchestrator.py`) — assembles identity + memory, drives the backend, redacts, audits.
+- **Transport (adapters)** normalize each chat platform into an `InboundEvent` and a `send`. Lark rides the official `lark-cli` binary (smooth path) or the `lark-oapi` SDK over a WebSocket long connection (custom-app path).
+- **Core** routes the turn through policy, memory, governance, and the orchestrator under a single-writer lock.
+- **Backend adapters** keep the system model-agnostic behind one seam — Anthropic/OpenAI HTTP APIs, a local CLI over ACP, or `echo` for wiring tests.
+- **Store** is one SQLite file: settings, per-channel memory, audit log, token usage, and the FTS5-indexed corpus.
+
+## Configuration
+
+Connection **credentials** (Lark/Slack/Discord tokens, backend API keys, active backend/model) are set in the **admin console** and stored in the database — you don't need them in the environment. The env vars below are infra-level settings read at process start.
+
+| Setting | Where | Default | Purpose |
+|---------|-------|---------|---------|
+| `AGENT_TAG_DB` | env | `agent_tag.db` | SQLite database path (Docker uses `/data/agent_tag.db`). |
+| `AGENT_TAG_WEB_HOST` | env | `127.0.0.1` | Admin console bind host (`0.0.0.0` to expose). |
+| `AGENT_TAG_WEB_PORT` | env | `8765` | Admin console port. |
+| `AGENT_TAG_ADMIN_TOKEN` | env | _(unset)_ | If set, the console requires this token. **Set it whenever the console is reachable beyond localhost.** |
+| `AGENT_TAG_ADAPTER` | env / console | `console` | First chat platform to run: `larkcli` · `lark` · `slack` · `discord` · `console`. |
+| `AGENT_TAG_BACKEND` | env / console | `echo` | Default backend: `claude` · `openai` · `cli` · `echo`. |
+| Backend keys | console | — | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`, or `AGENT_TAG_CLI_COMMAND` (`claude`/`codex`). |
+| Tool allowlist · token budget · ambient · redaction | console | — | Per-channel governance, edited in the console (`AGENT_TAG_REDACTION=0` disables redaction globally). |
+
+The CLI flags `--host / --port / --db / --token` override the corresponding env vars. See [`docs/deploy.md`](docs/deploy.md) for the admin token, backups, and containerized notes.
+
+## Security & privacy
+
+- **Memory fence** — per-channel memory is capability-fenced: the agent's memory tool exposes no namespace argument, so one channel's notes can't leak into another.
+- **Redaction (best-effort)** — outbound replies pass through a best-effort redaction/DLP pass (on by default, `AGENT_TAG_REDACTION`). Treat it as defense-in-depth, not a guarantee.
+- **Self-hosted, BYO key** — Agent Tag ships no billing code and never phones home; your data and model credentials stay on your host.
+- **Admin console** — has no auth by default and is meant to sit on `127.0.0.1`. If you expose it, set `AGENT_TAG_ADMIN_TOKEN` and front it with HTTPS.
+
+Found a vulnerability? Please report it privately — see [`SECURITY.md`](SECURITY.md).
+
+## Contributing
+
+Contributions welcome — the `Adapter` and `BackendAdapter` SDKs are the extension surface. Run `pytest` for tests and `ruff check` / `ruff format` for lint and formatting. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## License
 
-[Apache-2.0](LICENSE). Contributions welcome — the `Adapter` and `BackendAdapter` SDKs are the extension surface.
+[Apache-2.0](LICENSE).
+
+## Status
+
+**Beta (0.1.0).** Runs end-to-end today; interfaces may still change before 1.0.

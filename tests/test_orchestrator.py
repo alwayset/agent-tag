@@ -1,5 +1,6 @@
 """End-to-end: multiple users share one teammate per channel, memory accumulates
 per channel and stays isolated, and message ids are idempotent."""
+
 from agent_tag.adapters.base import Adapter, InboundEvent
 from agent_tag.backends.echo import EchoBackend
 from agent_tag.core.memory import MemoryService
@@ -31,20 +32,32 @@ def _build():
     org = ws.create_org("Org", org_id="org1")
     wsp = ws.create_workspace(org.id, "WS", ws_id="ws1")
     router = Router(
-        ws, default_org_id=org.id, default_workspace_id=wsp.id,
-        default_backend="echo", auto_bind=True, require_mention=True,
+        ws,
+        default_org_id=org.id,
+        default_workspace_id=wsp.id,
+        default_backend="echo",
+        auto_bind=True,
+        require_mention=True,
     )
     orch = TurnOrchestrator(
-        router=router, memory=MemoryService(store), redactor=Redactor(enabled=True),
-        backends={"echo": EchoBackend()}, default_backend="echo",
+        router=router,
+        memory=MemoryService(store),
+        redactor=Redactor(enabled=True),
+        backends={"echo": EchoBackend()},
+        default_backend="echo",
     )
     return store, orch
 
 
 def _ev(user, channel, text, mid):
     return InboundEvent(
-        platform="console", channel_id=channel, user_id=user, user_display_name=user,
-        text=text, mentions_bot=True, message_id=mid,
+        platform="console",
+        channel_id=channel,
+        user_id=user,
+        user_display_name=user,
+        text=text,
+        mentions_bot=True,
+        message_id=mid,
     )
 
 
@@ -55,8 +68,8 @@ async def test_multiuser_shared_channel_and_isolation():
     await orch.handle(_ev("bob", "eng", "what did alice say about deploy?", "2"), fake)
     await orch.handle(_ev("carol", "sales", "hello team", "3"), fake)
 
-    assert len(store.memory_search("console:eng", "")) == 2     # two eng turns
-    assert len(store.memory_search("console:sales", "")) == 1   # isolated
+    assert len(store.memory_search("console:eng", "")) == 2  # two eng turns
+    assert len(store.memory_search("console:sales", "")) == 1  # isolated
     assert store.memory_search("console:sales", "deploy") == [] or all(
         "deploy" not in m.content for m in store.memory_search("console:sales", "deploy")
     )

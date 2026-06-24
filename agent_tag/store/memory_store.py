@@ -3,6 +3,7 @@
 The memory namespace fence is enforced here: `memory_search` filters strictly
 by the namespace it is given. For a persistent deployment use `SqliteStore`.
 """
+
 from __future__ import annotations
 
 from agent_tag.models import (
@@ -27,7 +28,7 @@ class InMemoryStore(Store):
         self._channels: dict[str, Channel] = {}
         self._channels_by_ext: dict[tuple[str, str], str] = {}  # (platform, ext_id) -> channel_id
         self._policies: dict[str, ChannelPolicy] = {}
-        self._memory: dict[str, list[MemoryItem]] = {}          # namespace -> items
+        self._memory: dict[str, list[MemoryItem]] = {}  # namespace -> items
         self._audit: list[AuditEvent] = []
         self._settings: dict[str, str] = {}
         self._usage: dict[str, TokenUsage] = {}
@@ -81,8 +82,11 @@ class InMemoryStore(Store):
         return self._channels.get(cid) if cid else None
 
     def list_channels(self, workspace_id: str | None = None) -> list[Channel]:
-        return [c for c in self._channels.values()
-                if workspace_id is None or c.workspace_id == workspace_id]
+        return [
+            c
+            for c in self._channels.values()
+            if workspace_id is None or c.workspace_id == workspace_id
+        ]
 
     def put_policy(self, policy: ChannelPolicy) -> None:
         self._policies[policy.channel_id] = policy
@@ -95,7 +99,7 @@ class InMemoryStore(Store):
         self._memory.setdefault(item.namespace, []).append(item)
 
     def memory_search(self, namespace: str, query: str, limit: int = 10) -> list[MemoryItem]:
-        items = self._memory.get(namespace, [])           # <-- the fence: this namespace only
+        items = self._memory.get(namespace, [])  # <-- the fence: this namespace only
         q = query.lower().strip()
         if not q:
             ranked = list(reversed(items))
@@ -169,7 +173,7 @@ class InMemoryStore(Store):
         self._corpus.append(chunk)
 
     def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
-        rows = [c for c in self._corpus if c.workspace_id == workspace_id]   # the fence
+        rows = [c for c in self._corpus if c.workspace_id == workspace_id]  # the fence
         terms = [t for t in query.lower().split() if t]
         if not terms:
             return []
@@ -182,14 +186,27 @@ class InMemoryStore(Store):
         scored.sort(key=lambda x: x[0], reverse=True)
         out = []
         for score, c in scored[:limit]:
-            out.append(CorpusChunk(c.workspace_id, c.source, c.doc_id, c.title, c.url,
-                                   c.chunk_idx, c.text, float(score)))
+            out.append(
+                CorpusChunk(
+                    c.workspace_id,
+                    c.source,
+                    c.doc_id,
+                    c.title,
+                    c.url,
+                    c.chunk_idx,
+                    c.text,
+                    float(score),
+                )
+            )
         return out
 
     def corpus_clear(self, workspace_id: str, source: str | None = None) -> int:
         before = len(self._corpus)
-        self._corpus = [c for c in self._corpus
-                        if not (c.workspace_id == workspace_id and (source is None or c.source == source))]
+        self._corpus = [
+            c
+            for c in self._corpus
+            if not (c.workspace_id == workspace_id and (source is None or c.source == source))
+        ]
         return before - len(self._corpus)
 
     def corpus_docs(self, workspace_id: str) -> list[dict]:
@@ -197,8 +214,16 @@ class InMemoryStore(Store):
         for c in self._corpus:
             if c.workspace_id != workspace_id:
                 continue
-            d = docs.setdefault(c.doc_id, {"doc_id": c.doc_id, "title": c.title,
-                                           "url": c.url, "source": c.source, "chunks": 0})
+            d = docs.setdefault(
+                c.doc_id,
+                {
+                    "doc_id": c.doc_id,
+                    "title": c.title,
+                    "url": c.url,
+                    "source": c.source,
+                    "chunks": 0,
+                },
+            )
             d["chunks"] += 1
         return list(docs.values())
 

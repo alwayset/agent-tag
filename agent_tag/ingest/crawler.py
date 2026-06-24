@@ -5,6 +5,7 @@ Non-text node types (sheets/bitable/mindnote/files) are reported as skipped for
 now — extending readers is a TODO. Uses the LarkCli wrapper (user identity), so
 it respects the authorizing user's permissions.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -16,7 +17,7 @@ _TEXT_TYPES = {"docx", "doc"}
 
 @dataclass(slots=True)
 class CrawledDoc:
-    doc_id: str          # obj_token
+    doc_id: str  # obj_token
     title: str
     obj_type: str
     node_token: str
@@ -43,13 +44,15 @@ def _list_nodes(cli: LarkCli, space_id: str, parent: str | None = None) -> list[
 
 
 def _fetch_docx_text(cli: LarkCli, document_id: str) -> str:
-    payload = cli.api("GET", f"/open-apis/docx/v1/documents/{document_id}/raw_content",
-                      params={"lang": 0})
+    payload = cli.api(
+        "GET", f"/open-apis/docx/v1/documents/{document_id}/raw_content", params={"lang": 0}
+    )
     return (payload.get("data", {}) or {}).get("content", "") or ""
 
 
-def crawl_wiki_space(cli: LarkCli, space_id: str, *, domain: str = "https://open.larksuite.com",
-                     max_nodes: int = 500) -> CrawlResult:
+def crawl_wiki_space(
+    cli: LarkCli, space_id: str, *, domain: str = "https://open.larksuite.com", max_nodes: int = 500
+) -> CrawlResult:
     result = CrawlResult()
     host = domain.replace("/open-apis", "").rstrip("/")
     # BFS over the node tree
@@ -73,9 +76,16 @@ def crawl_wiki_space(cli: LarkCli, space_id: str, *, domain: str = "https://open
                 except Exception:  # noqa: BLE001 - one bad doc shouldn't kill the crawl
                     text = ""
                 if text.strip():
-                    result.docs.append(CrawledDoc(
-                        doc_id=obj_token, title=title, obj_type=obj_type,
-                        node_token=node_token, url=f"{host}/wiki/{node_token}", text=text))
+                    result.docs.append(
+                        CrawledDoc(
+                            doc_id=obj_token,
+                            title=title,
+                            obj_type=obj_type,
+                            node_token=node_token,
+                            url=f"{host}/wiki/{node_token}",
+                            text=text,
+                        )
+                    )
                 else:
                     result.skipped.append((title, obj_type or "empty"))
             else:

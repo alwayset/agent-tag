@@ -29,6 +29,7 @@ Verified against the current (2026) Bolt for Python async API:
     - https://github.com/slackapi/bolt-python/blob/main/examples/socket_mode_async.py
     - https://docs.slack.dev/tools/python-slack-sdk/reference/web/async_client.html
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -151,9 +152,7 @@ class SlackAdapter(Adapter):
             await self.close()
 
     # --------------------------------------------------------------------- send
-    async def send(
-        self, channel_id: str, text: str, *, thread_id: str | None = None
-    ) -> str | None:
+    async def send(self, channel_id: str, text: str, *, thread_id: str | None = None) -> str | None:
         # thread_ts must be a string ts; passing the parent's ts threads the reply.
         resp = await self._client.chat_postMessage(
             channel=channel_id,
@@ -178,9 +177,7 @@ class SlackAdapter(Adapter):
             )
         else:
             # conversations.history returns the channel timeline, newest first.
-            resp = await self._client.conversations_history(
-                channel=channel_id, limit=limit
-            )
+            resp = await self._client.conversations_history(channel=channel_id, limit=limit)
         messages = resp.get("messages", []) or []
         if not thread_id:
             # Normalize to chronological order to match the threaded case.

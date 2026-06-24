@@ -12,6 +12,7 @@ Two ideas matter here:
    and stale facts. (Real LLM-based distillation is a TODO; MVP stores a compact
    interaction note.) Retrieved memory is treated as DATA, never instructions.
 """
+
 from __future__ import annotations
 
 import time
@@ -36,8 +37,14 @@ class ScopedMemory:
     def search(self, query: str = "", limit: int = 10) -> list[MemoryItem]:
         return self._store.memory_search(self._namespace, query, limit)
 
-    def write(self, content: str, *, kind: str = "fact", provenance: str = "agent",
-              ttl_seconds: float | None = None) -> MemoryItem:
+    def write(
+        self,
+        content: str,
+        *,
+        kind: str = "fact",
+        provenance: str = "agent",
+        ttl_seconds: float | None = None,
+    ) -> MemoryItem:
         now = time.time()
         item = MemoryItem(
             id=f"mem_{uuid.uuid4().hex[:12]}",

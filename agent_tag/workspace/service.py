@@ -5,6 +5,7 @@ who @-mentions the teammate on any platform is resolved (or auto-enrolled) to a
 single org `User`, so the teammate knows *who* it is talking to and what role
 they have. Channels are bound to a workspace and carry a `ChannelPolicy`.
 """
+
 from __future__ import annotations
 
 import uuid

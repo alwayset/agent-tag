@@ -4,6 +4,7 @@
 (web UI + live adapters + ambient). It seeds a default org/workspace idempotently
 and builds every backend whose credentials are present.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -74,7 +75,7 @@ def build_core(config: Config, store: Store, settings: SettingsService | None = 
     redactor = Redactor(enabled=config.redaction_enabled)
     backends = build_backends(config)
 
-    default_backend = (settings.get("default_backend") or config.backend or "echo")
+    default_backend = settings.get("default_backend") or config.backend or "echo"
     if default_backend not in backends:
         default_backend = "echo"
 
@@ -88,14 +89,19 @@ def build_core(config: Config, store: Store, settings: SettingsService | None = 
         require_mention=True,
     )
     orchestrator = TurnOrchestrator(
-        router=router, memory=memory, redactor=redactor,
-        backends=backends, default_backend="echo",
+        router=router,
+        memory=memory,
+        redactor=redactor,
+        backends=backends,
+        default_backend="echo",
     )
-    return CoreBundle(config, store, settings, workspace, memory, redactor,
-                      orchestrator, backends, org.id, ws.id)
+    return CoreBundle(
+        config, store, settings, workspace, memory, redactor, orchestrator, backends, org.id, ws.id
+    )
 
 
 # --- console runner (zero-cred demo / quick local chat) ---
+
 
 @dataclass(slots=True)
 class App:

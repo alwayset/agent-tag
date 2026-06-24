@@ -7,6 +7,7 @@ Because lark-cli is already authorized (the operator did its click-a-link OAuth
 once), there is no app-scope wiring to do here. Note lark-cli's event subscription
 holds a single-instance lock — don't run another lark-cli event consumer alongside.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -76,9 +77,17 @@ class LarkCliAdapter(Adapter):
         if not self.cli:
             raise RuntimeError("lark-cli not found; install it or set LARK_CLI_PATH")
         self._proc = await asyncio.create_subprocess_exec(
-            self.cli, "event", "+subscribe", "--as", "bot",
-            "--event-types", "im.message.receive_v1", "--quiet",
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+            self.cli,
+            "event",
+            "+subscribe",
+            "--as",
+            "bot",
+            "--event-types",
+            "im.message.receive_v1",
+            "--quiet",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
         assert self._proc.stdout is not None
         while True:
             line = await self._proc.stdout.readline()
@@ -99,9 +108,18 @@ class LarkCliAdapter(Adapter):
         if not self.cli:
             return None
         proc = await asyncio.create_subprocess_exec(
-            self.cli, "im", "+messages-send", "--as", "bot",
-            "--chat-id", channel_id, "--text", text,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            self.cli,
+            "im",
+            "+messages-send",
+            "--as",
+            "bot",
+            "--chat-id",
+            channel_id,
+            "--text",
+            text,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
         await proc.communicate()
         return None
 

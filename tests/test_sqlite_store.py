@@ -1,4 +1,5 @@
 """SqliteStore: persistence + the namespace fence survive a reopen."""
+
 import os
 import tempfile
 
@@ -17,8 +18,15 @@ def test_persists_across_reopen():
     try:
         s = SqliteStore(path)
         s.put_org(Organization("org1", "Acme"))
-        s.put_policy(ChannelPolicy(channel_id="c1", memory_namespace="lark:oc1",
-                                   backend="claude", token_budget=5000, ambient_enabled=True))
+        s.put_policy(
+            ChannelPolicy(
+                channel_id="c1",
+                memory_namespace="lark:oc1",
+                backend="claude",
+                token_budget=5000,
+                ambient_enabled=True,
+            )
+        )
         s.memory_write(MemoryItem("m1", "lark:oc1", "fact", "deploys on fridays", "u1", 1.0))
         s.set_setting("default_backend", "claude")
         s.add_usage("c1", 100, 50)
@@ -39,7 +47,9 @@ def test_memory_fence_in_sqlite():
     try:
         s = SqliteStore(path)
         s.memory_write(MemoryItem("m1", "lark:eng", "fact", "secret eng note", "u", 1.0))
-        assert s.memory_search("lark:eng", "secret") and s.memory_search("lark:sales", "secret") == []
+        assert (
+            s.memory_search("lark:eng", "secret") and s.memory_search("lark:sales", "secret") == []
+        )
     finally:
         os.remove(path)
 

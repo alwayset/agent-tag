@@ -1,8 +1,9 @@
 """Command-line entrypoint.
 
-  agent-tag serve                 # run the admin web UI + chat adapters + ambient
-  agent-tag run --adapter console --backend echo   # quick local chat (zero creds)
+agent-tag serve                 # run the admin web UI + chat adapters + ambient
+agent-tag run --adapter console --backend echo   # quick local chat (zero creds)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "lark-spaces":
         from agent_tag.ingest import list_wiki_spaces
         from agent_tag.lark_cli import LarkCli
+
         spaces = list_wiki_spaces(LarkCli(config=config))
         for s in spaces:
             print(f"  {s.get('space_id'):<22} {s.get('name')}")
@@ -54,17 +56,21 @@ def main(argv: list[str] | None = None) -> int:
         from agent_tag.ingest import ingest_wiki_space
         from agent_tag.settings import SettingsService
         from agent_tag.store.sqlite_store import SqliteStore
+
         store = SqliteStore(config.db_path)
         settings = SettingsService(store, config)
         cfg = settings.effective_config()
         cfg.db_path = config.db_path
         core = build_core(cfg, store, settings)
         print(f"[agent-tag] ingesting wiki space {args.space} → workspace {core.workspace_id} ...")
-        stats = ingest_wiki_space(store, core.workspace_id, args.space,
-                                  space_name=args.name, domain=cfg.lark_domain)
-        print(f"[agent-tag] done: {stats['docs']} docs, {stats['chunks']} chunks indexed, "
-              f"{stats['skipped']} skipped. Total in workspace: "
-              f"{store.corpus_count(core.workspace_id)} chunks.")
+        stats = ingest_wiki_space(
+            store, core.workspace_id, args.space, space_name=args.name, domain=cfg.lark_domain
+        )
+        print(
+            f"[agent-tag] done: {stats['docs']} docs, {stats['chunks']} chunks indexed, "
+            f"{stats['skipped']} skipped. Total in workspace: "
+            f"{store.corpus_count(core.workspace_id)} chunks."
+        )
         return 0
 
     if args.cmd == "serve":
@@ -77,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.token:
             config.admin_token = args.token
         from agent_tag.serve import serve
+
         try:
             asyncio.run(serve(config))
         except KeyboardInterrupt:
@@ -92,9 +99,12 @@ def main(argv: list[str] | None = None) -> int:
         config.model = args.model
 
     from agent_tag.app import build_app
+
     app = build_app(config)
-    print(f"[agent-tag] adapter={config.adapter} backend={config.backend}"
-          f"  (adapters={adapters_available()} backends={backends_available()})")
+    print(
+        f"[agent-tag] adapter={config.adapter} backend={config.backend}"
+        f"  (adapters={adapters_available()} backends={backends_available()})"
+    )
     try:
         asyncio.run(app.run())
     except KeyboardInterrupt:

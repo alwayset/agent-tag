@@ -1,4 +1,5 @@
 """Backend registry — lazy import so the core runs without optional agent SDKs."""
+
 from __future__ import annotations
 
 import importlib

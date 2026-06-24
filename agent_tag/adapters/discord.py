@@ -27,6 +27,7 @@ https://discordpy.readthedocs.io/en/stable/api.html
   - Client.get_channel(id) (cache) / await fetch_channel(id) (API)
   - TextChannel.send(...) / Thread.send(...)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -62,15 +63,11 @@ class DiscordAdapter(Adapter):
                 return
 
             text = self._strip_bot_mention(message)
-            mentions_bot = (
-                self._client.user is not None and self._client.user in message.mentions
-            )
+            mentions_bot = self._client.user is not None and self._client.user in message.mentions
 
             # A message lives "in a thread" when its channel is a discord.Thread.
             thread_id = (
-                str(message.channel.id)
-                if isinstance(message.channel, discord.Thread)
-                else None
+                str(message.channel.id) if isinstance(message.channel, discord.Thread) else None
             )
 
             await self._queue.put(
@@ -78,9 +75,7 @@ class DiscordAdapter(Adapter):
                     platform=self.platform,
                     channel_id=str(message.channel.id),
                     user_id=str(message.author.id),
-                    user_display_name=getattr(
-                        message.author, "display_name", None
-                    )
+                    user_display_name=getattr(message.author, "display_name", None)
                     or str(message.author),
                     text=text,
                     mentions_bot=mentions_bot,
@@ -134,15 +129,13 @@ class DiscordAdapter(Adapter):
 
             try:
                 event = await asyncio.wait_for(self._queue.get(), timeout=1.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue  # re-check client_task liveness, then keep waiting
             yield event
 
     # -------------------------------------------------------------- outbound
 
-    async def send(
-        self, channel_id: str, text: str, *, thread_id: str | None = None
-    ) -> str | None:
+    async def send(self, channel_id: str, text: str, *, thread_id: str | None = None) -> str | None:
         # Thread-aware: if a thread_id is given, post into the thread; otherwise
         # post into the channel. Both discord.Thread and discord.TextChannel
         # expose the same `.send(content)` coroutine returning a Message.

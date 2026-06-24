@@ -1,0 +1,57 @@
+# Ruff configuration for Agent Tag.
+# Mirrors the project style: 100-col lines, double quotes,
+# `from __future__ import annotations`. Kept conservative so the
+# existing code lints clean — tighten over time, not all at once.
+
+target-version = "py311"
+line-length = 100
+
+extend-exclude = [
+    ".venv",
+    "build",
+    "dist",
+]
+
+[lint]
+# E/F  — pyflakes + pycodestyle (the baseline)
+# I    — import sorting (isort)
+# UP   — pyupgrade (modern syntax for the min Python)
+# B    — flake8-bugbear (likely bugs)
+# SIM  — flake8-simplify (readability)
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    # E501 (line length) is owned by the formatter, which wraps everything it
+    # safely can. Leaving the lint rule on would only flag the handful of lines
+    # the formatter cannot break (long SQL/string literals), so we disable it —
+    # the recommended pairing when `ruff format` is in use.
+    "E501",
+    # The codebase deliberately uses explicit `try/except: pass` blocks with
+    # explanatory comments around shutdown/teardown paths; `contextlib.suppress`
+    # would hide that intent. Keep the rest of SIM on.
+    "SIM105",  # use contextlib.suppress(...)
+    "SIM115",  # use a context manager for open()
+    "SIM117",  # combine nested with statements
+    "UP042",   # class X(str, Enum) -> StrEnum (StrEnum is 3.11+, keep current form)
+    "B007",    # loop control variable not used in body
+    # The web module quotes annotations that reference TYPE_CHECKING-only imports
+    # (CoreBundle/SettingsService/Config); keep them quoted so they resolve.
+    "UP037",   # remove quotes from type annotation
+]
+
+[lint.per-file-ignores]
+# Tests favour readability over strict lint hygiene:
+#   B008  — calls in argument defaults (parametrize factories)
+#   B011  — assert False is fine in tests
+#   SIM   — explicit branches are clearer in assertions
+"tests/**" = ["B008", "B011", "SIM"]
+# Package re-exports intentionally surface names without using them locally.
+"agent_tag/**/__init__.py" = ["F401"]
+
+[lint.isort]
+known-first-party = ["agent_tag"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+skip-magic-trailing-comma = false

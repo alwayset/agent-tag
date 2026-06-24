@@ -22,6 +22,7 @@ https://platform.claude.com/docs/en/api/sdks/python  (§Async usage, §Streaming
         async for text in stream.text_stream: ...
         message = await stream.get_final_message()  # message.usage.{input,output}_tokens
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator

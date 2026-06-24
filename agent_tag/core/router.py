@@ -4,6 +4,7 @@ New people are auto-enrolled as org members; for MVP, unknown channels are
 auto-bound to a default workspace. (Admin-gated channel onboarding instead of
 auto-bind is a v1 item — see TODO.md.)
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

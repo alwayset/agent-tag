@@ -5,6 +5,7 @@ turn's *metadata* (who is speaking, which channel, how many channel facts are
 remembered) so you can watch per-channel memory accumulate and stay isolated
 without spending a token.
 """
+
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -25,7 +26,7 @@ class EchoBackend(BackendAdapter):
         said = md.get("last_user_text", "")
         known = md.get("known_facts", [])
         reply = (
-            f"(echo backend) Hi {user} — heard you in #{channel}: \"{said}\". "
+            f'(echo backend) Hi {user} — heard you in #{channel}: "{said}". '
             f"I currently remember {len(known)} note(s) about this channel."
         )
         if known:

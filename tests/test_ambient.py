@@ -1,4 +1,5 @@
 """Deterministic ambient scheduler: respects interval, fires, stays silent when empty."""
+
 from agent_tag.adapters.base import Adapter
 from agent_tag.backends.echo import EchoBackend
 from agent_tag.core.ambient import AmbientEngine
@@ -30,9 +31,13 @@ def _orch(store):
     org = ws.create_org("O", org_id="o1")
     ws.create_workspace(org.id, "W", ws_id="w1")
     router = Router(ws, default_org_id=org.id, default_workspace_id="w1", default_backend="echo")
-    return ws, TurnOrchestrator(router=router, memory=MemoryService(store),
-                                redactor=Redactor(enabled=False),
-                                backends={"echo": EchoBackend()}, default_backend="echo")
+    return ws, TurnOrchestrator(
+        router=router,
+        memory=MemoryService(store),
+        redactor=Redactor(enabled=False),
+        backends={"echo": EchoBackend()},
+        default_backend="echo",
+    )
 
 
 async def test_ambient_respects_interval_then_fires():
@@ -48,9 +53,9 @@ async def test_ambient_respects_interval_then_fires():
     t = [1000.0]
     eng = AmbientEngine(store, orch, {"lark": fake}, now=lambda: t[0])
 
-    assert await eng.tick() == 0          # first pass starts the clock
+    assert await eng.tick() == 0  # first pass starts the clock
     assert fake.sent == []
-    t[0] = 1000.0 + 25 * 3600              # past the 24h interval
+    t[0] = 1000.0 + 25 * 3600  # past the 24h interval
     assert await eng.tick() == 1
     assert fake.sent and fake.sent[0].startswith("🔔")
 
@@ -60,12 +65,12 @@ async def test_ambient_silent_without_memory():
     ws, orch = _orch(store)
     ch, pol = ws.bind_channel("w1", "lark", "oc2", "ops")
     pol.ambient_enabled = True
-    store.put_policy(pol)                  # no memory written
+    store.put_policy(pol)  # no memory written
 
     fake = FakeAdapter()
     t = [1000.0]
     eng = AmbientEngine(store, orch, {"lark": fake}, now=lambda: t[0])
     await eng.tick()
     t[0] = 1000.0 + 25 * 3600
-    assert await eng.tick() == 0           # nothing to follow up on → silent
+    assert await eng.tick() == 0  # nothing to follow up on → silent
     assert fake.sent == []

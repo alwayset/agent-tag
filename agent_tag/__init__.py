@@ -2,6 +2,7 @@
 
 Working name; see TODO.md / the plan for the (pending) durable mark.
 """
+
 from __future__ import annotations
 
 __version__ = "0.0.1"

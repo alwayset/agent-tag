@@ -1,5 +1,6 @@
 """The capability fence: memory must never cross a channel namespace, and the
 scoped handle must expose no way to target another namespace."""
+
 from agent_tag.core.memory import MemoryService, ScopedMemory
 from agent_tag.store.memory_store import InMemoryStore
 

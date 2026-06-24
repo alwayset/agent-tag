@@ -8,6 +8,7 @@ Runs three things in one event loop:
 Connection changes made in the UI take effect on the next `serve` start (v1: restart
 to re-bind adapters; the UI shows a reminder).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -21,10 +22,11 @@ from agent_tag.store.sqlite_store import SqliteStore
 
 
 def _adapter_ready(name: str, cfg: Config) -> bool:
-    if name == "larkcli":                       # smooth path: just needs lark-cli authed
+    if name == "larkcli":  # smooth path: just needs lark-cli authed
         from agent_tag.lark_cli import find_lark_cli
+
         return bool(find_lark_cli(cfg))
-    if name == "lark":                          # custom-app path: needs app creds
+    if name == "lark":  # custom-app path: needs app creds
         return bool(cfg.lark_app_id and cfg.lark_app_secret)
     if name == "slack":
         return bool(cfg.slack_bot_token and cfg.slack_app_token)
@@ -61,8 +63,10 @@ async def serve(env_config: Config) -> None:
     drain_tasks: list[asyncio.Task] = []
     for name in settings.enabled_adapters():
         if not _adapter_ready(name, cfg):
-            print(f"[agent-tag] adapter '{name}' enabled but not configured — skipping "
-                  f"(set its credentials in the console, then restart).")
+            print(
+                f"[agent-tag] adapter '{name}' enabled but not configured — skipping "
+                f"(set its credentials in the console, then restart)."
+            )
             continue
         try:
             adapter = build_adapter(name, cfg)
@@ -78,16 +82,22 @@ async def serve(env_config: Config) -> None:
     ambient_task = asyncio.create_task(ambient.run(stop))
 
     # Web UI.
-    from agent_tag.web import create_app  # imported here so core runs without web extras
     import uvicorn
 
+    from agent_tag.web import create_app  # imported here so core runs without web extras
+
     app = create_app(core, settings, cfg)
-    server = uvicorn.Server(uvicorn.Config(
-        app, host=cfg.web_host, port=cfg.web_port, log_level="warning", loop="asyncio"))
+    server = uvicorn.Server(
+        uvicorn.Config(
+            app, host=cfg.web_host, port=cfg.web_port, log_level="warning", loop="asyncio"
+        )
+    )
 
     url = f"http://{cfg.web_host}:{cfg.web_port}"
-    print(f"\n  Agent Tag is running.\n  → Admin console:  {url}\n"
-          f"  → Chat adapters:  {', '.join(senders) or '(none configured yet — set them in the console)'}\n")
+    print(
+        f"\n  Agent Tag is running.\n  → Admin console:  {url}\n"
+        f"  → Chat adapters:  {', '.join(senders) or '(none configured yet — set them in the console)'}\n"
+    )
     try:
         await server.serve()
     finally:

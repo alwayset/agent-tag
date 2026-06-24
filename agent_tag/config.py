@@ -5,6 +5,7 @@ NOT reuse subscription/coding-plan tokens — doing so for a shared multi-user
 bot is prohibited by both Anthropic (Consumer Terms §3.7) and OpenAI. See
 TODO.md / the plan for detail.
 """
+
 from __future__ import annotations
 
 import os
@@ -37,12 +38,12 @@ class Config:
     anthropic_api_key: str | None = None
     openai_api_key: str | None = None
     # Local-CLI dogfood backend (subscription auth — DEV ONLY, see warning in cli_acp)
-    cli_command: str = "claude"          # or "codex"
+    cli_command: str = "claude"  # or "codex"
 
     # Platform creds
     lark_app_id: str | None = None
     lark_app_secret: str | None = None
-    lark_domain: str = "https://open.larksuite.com"   # international; Feishu = open.feishu.cn
+    lark_domain: str = "https://open.larksuite.com"  # international; Feishu = open.feishu.cn
     slack_bot_token: str | None = None
     slack_app_token: str | None = None
     discord_token: str | None = None
@@ -54,7 +55,7 @@ class Config:
     db_path: str = "agent_tag.db"
     web_host: str = "127.0.0.1"
     web_port: int = 8765
-    admin_token: str | None = None       # if set, the admin UI requires this token
+    admin_token: str | None = None  # if set, the admin UI requires this token
     extra: dict = field(default_factory=dict)
 
     @classmethod

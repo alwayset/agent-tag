@@ -10,6 +10,7 @@ FastAPI/Jinja2 lazily inside the function, so `from agent_tag.web import create_
 works on a bare install and only fails (with a clear message) when you actually
 call it without `pip install 'agent-tag[web]'`.
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -133,7 +134,8 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         if admin_token is None:
             return RedirectResponse("/", status_code=303)
         return templates.TemplateResponse(
-            request, "login.html",
+            request,
+            "login.html",
             {"request": request, "error": error, "next": next},
         )
 
@@ -147,7 +149,8 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             resp.set_cookie(COOKIE_NAME, token, httponly=True, samesite="lax")
             return resp
         return templates.TemplateResponse(
-            request, "login.html",
+            request,
+            "login.html",
             {"request": request, "error": "Incorrect token.", "next": nxt},
             status_code=401,
         )
@@ -193,26 +196,46 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         channel_ok = len(channels) >= 1
         corpus_chunks = store.corpus_count(core.workspace_id)
         checklist = [
-            {"label": "Connect Lark", "done": lark_ok,
-             "hint": "Add your Lark App ID, Secret, and domain.",
-             "link": "/connections"},
-            {"label": "Configure a model backend", "done": backend_ok,
-             "hint": "Add an API key (Anthropic / OpenAI) or a local coding-agent CLI.",
-             "link": "/connections"},
-            {"label": "Bind at least one channel", "done": channel_ok,
-             "hint": "Point the teammate at a chat where it should live.",
-             "link": "/workspace"},
-            {"label": "Ingest your Lark knowledge base", "done": corpus_chunks > 0,
-             "hint": "Index your existing Lark wiki so the teammate answers from your real docs.",
-             "link": "/knowledge"},
+            {
+                "label": "Connect Lark",
+                "done": lark_ok,
+                "hint": "Add your Lark App ID, Secret, and domain.",
+                "link": "/connections",
+            },
+            {
+                "label": "Configure a model backend",
+                "done": backend_ok,
+                "hint": "Add an API key (Anthropic / OpenAI) or a local coding-agent CLI.",
+                "link": "/connections",
+            },
+            {
+                "label": "Bind at least one channel",
+                "done": channel_ok,
+                "hint": "Point the teammate at a chat where it should live.",
+                "link": "/workspace",
+            },
+            {
+                "label": "Ingest your Lark knowledge base",
+                "done": corpus_chunks > 0,
+                "hint": "Index your existing Lark wiki so the teammate answers from your real docs.",
+                "link": "/knowledge",
+            },
         ]
         all_done = all(c["done"] for c in checklist)
 
         return render(
-            request, "dashboard.html", active="dashboard", flash=flash,
-            checklist=checklist, all_done=all_done,
-            counts={"channels": len(channels), "users": len(users),
-                    "memory": mem_total, "knowledge": corpus_chunks},
+            request,
+            "dashboard.html",
+            active="dashboard",
+            flash=flash,
+            checklist=checklist,
+            all_done=all_done,
+            counts={
+                "channels": len(channels),
+                "users": len(users),
+                "memory": mem_total,
+                "knowledge": corpus_chunks,
+            },
             enabled_adapters=settings.enabled_adapters(),
             backends=list(core.backends),
             default_backend=(settings.get("default_backend") or "echo"),
@@ -227,15 +250,17 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             return r
         groups: dict[str, list[dict]] = {}
         for spec in SETTING_SPECS:
-            groups.setdefault(spec.group, []).append({
-                "key": spec.key,
-                "label": spec.label,
-                "secret": spec.secret,
-                "help": spec.help,
-                "placeholder": spec.placeholder,
-                "value": "" if spec.secret else (settings.get(spec.key) or ""),
-                "secret_set": bool(spec.secret and (settings.get(spec.key) or "").strip()),
-            })
+            groups.setdefault(spec.group, []).append(
+                {
+                    "key": spec.key,
+                    "label": spec.label,
+                    "secret": spec.secret,
+                    "help": spec.help,
+                    "placeholder": spec.placeholder,
+                    "value": "" if spec.secret else (settings.get(spec.key) or ""),
+                    "secret_set": bool(spec.secret and (settings.get(spec.key) or "").strip()),
+                }
+            )
         from agent_tag.lark_cli import LarkCli
 
         lark_who = None
@@ -244,8 +269,12 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         except Exception:  # noqa: BLE001
             lark_who = None
         return render(
-            request, "connections.html", active="connections", flash=flash,
-            groups=groups, lark_who=lark_who,
+            request,
+            "connections.html",
+            active="connections",
+            flash=flash,
+            groups=groups,
+            lark_who=lark_who,
             enabled_adapters=settings.enabled_adapters(),
         )
 
@@ -273,27 +302,35 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         chan_rows = []
         for ch in channels:
             policy = store.get_policy(ch.id)
-            chan_rows.append({
-                "id": ch.id,
-                "label": channel_label(ch),
-                "platform": ch.platform,
-                "external_id": ch.external_id,
-                "backend": policy.backend if policy else "—",
-                "ambient": bool(policy.ambient_enabled) if policy else False,
-                "budget": (policy.token_budget if policy and policy.token_budget else None),
-            })
+            chan_rows.append(
+                {
+                    "id": ch.id,
+                    "label": channel_label(ch),
+                    "platform": ch.platform,
+                    "external_id": ch.external_id,
+                    "backend": policy.backend if policy else "—",
+                    "ambient": bool(policy.ambient_enabled) if policy else False,
+                    "budget": (policy.token_budget if policy and policy.token_budget else None),
+                }
+            )
         user_rows = []
         for u in users:
             ids = ", ".join(f"{p}:{x}" for p, x in u.identities.items()) or "—"
-            user_rows.append({
-                "display_name": u.display_name,
-                "role": u.role.value if hasattr(u.role, "value") else str(u.role),
-                "identities": ids,
-            })
+            user_rows.append(
+                {
+                    "display_name": u.display_name,
+                    "role": u.role.value if hasattr(u.role, "value") else str(u.role),
+                    "identities": ids,
+                }
+            )
         return render(
-            request, "workspace.html", active="workspace", flash=flash,
+            request,
+            "workspace.html",
+            active="workspace",
+            flash=flash,
             workspaces=store.list_workspaces(core.org_id),
-            users=user_rows, channels=chan_rows,
+            users=user_rows,
+            channels=chan_rows,
             roles=[r.value for r in Role],
         )
 
@@ -310,8 +347,12 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         default_backend = settings.get("default_backend") or "echo"
         default_model = settings.get("default_model") or None
         workspace.bind_channel(
-            core.workspace_id, platform, external_id, name,
-            backend=default_backend, model=default_model,
+            core.workspace_id,
+            platform,
+            external_id,
+            name,
+            backend=default_backend,
+            model=default_model,
         )
         return flash_redirect("/workspace", f"Channel “{name}” bound.")
 
@@ -343,12 +384,18 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         ch = store.get_channel(channel_id)
         policy = store.get_policy(channel_id)
         if ch is None or policy is None:
-            return render(request, "not_found.html", active="workspace",
-                          what="channel", back="/workspace")
+            return render(
+                request, "not_found.html", active="workspace", what="channel", back="/workspace"
+            )
         users = store.list_users(core.org_id)
         return render(
-            request, "channel.html", active="workspace", flash=flash,
-            channel=ch, policy=policy, label=channel_label(ch),
+            request,
+            "channel.html",
+            active="workspace",
+            flash=flash,
+            channel=ch,
+            policy=policy,
+            label=channel_label(ch),
             backends=list(core.backends),
             all_backends=backends_available(),
             users=users,
@@ -360,8 +407,9 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             return r
         policy = store.get_policy(channel_id)
         if policy is None:
-            return render(request, "not_found.html", active="workspace",
-                          what="channel", back="/workspace")
+            return render(
+                request, "not_found.html", active="workspace", what="channel", back="/workspace"
+            )
         form = await request.form()
 
         def has(name: str) -> bool:
@@ -373,7 +421,9 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         except ValueError:
             token_budget = policy.token_budget
         try:
-            interval = int((form.get("ambient_interval_hours") or "").strip() or policy.ambient_interval_hours)
+            interval = int(
+                (form.get("ambient_interval_hours") or "").strip() or policy.ambient_interval_hours
+            )
         except ValueError:
             interval = policy.ambient_interval_hours
 
@@ -411,15 +461,16 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             policy = store.get_policy(ch.id)
             if policy is None:
                 continue
-            rows.append({
-                "id": ch.id,
-                "label": channel_label(ch),
-                "platform": ch.platform,
-                "namespace": policy.memory_namespace,
-                "count": len(store.list_memory(policy.memory_namespace)),
-            })
-        return render(request, "memory_index.html", active="memory", flash=flash,
-                      channels=rows)
+            rows.append(
+                {
+                    "id": ch.id,
+                    "label": channel_label(ch),
+                    "platform": ch.platform,
+                    "namespace": policy.memory_namespace,
+                    "count": len(store.list_memory(policy.memory_namespace)),
+                }
+            )
+        return render(request, "memory_index.html", active="memory", flash=flash, channels=rows)
 
     @app.get("/channels/{channel_id}/memory", response_class=HTMLResponse)
     def memory_detail(request: Request, channel_id: str, flash: str = ""):
@@ -428,12 +479,20 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         ch = store.get_channel(channel_id)
         policy = store.get_policy(channel_id)
         if ch is None or policy is None:
-            return render(request, "not_found.html", active="memory",
-                          what="channel", back="/memory")
+            return render(
+                request, "not_found.html", active="memory", what="channel", back="/memory"
+            )
         items = store.list_memory(policy.memory_namespace)
-        return render(request, "memory_detail.html", active="memory", flash=flash,
-                      channel=ch, policy=policy, label=channel_label(ch),
-                      items=items)
+        return render(
+            request,
+            "memory_detail.html",
+            active="memory",
+            flash=flash,
+            channel=ch,
+            policy=policy,
+            label=channel_label(ch),
+            items=items,
+        )
 
     @app.post("/memory/{item_id}/edit")
     async def memory_edit(request: Request, item_id: str):
@@ -485,9 +544,15 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
                 spaces = []
                 spaces_error = str(exc)[:300]
         return render(
-            request, "knowledge.html", active="knowledge", flash=flash,
-            who=who, docs=docs, total_chunks=total_chunks,
-            spaces=spaces, spaces_error=spaces_error,
+            request,
+            "knowledge.html",
+            active="knowledge",
+            flash=flash,
+            who=who,
+            docs=docs,
+            total_chunks=total_chunks,
+            spaces=spaces,
+            spaces_error=spaces_error,
         )
 
     @app.post("/knowledge/ingest")
@@ -505,8 +570,12 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             return flash_redirect("/knowledge", "A space id is required.")
         try:
             stats = await asyncio.to_thread(
-                ingest_wiki_space, core.store, core.workspace_id, space_id,
-                space_name=name, domain=config.lark_domain,
+                ingest_wiki_space,
+                core.store,
+                core.workspace_id,
+                space_id,
+                space_name=name,
+                domain=config.lark_domain,
             )
         except Exception as exc:  # noqa: BLE001
             return flash_redirect("/knowledge", f"Ingest failed: {str(exc)[:200]}")
@@ -536,17 +605,27 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         channel_filter = channel.strip() or None
         events = store.list_audit(channel_id=channel_filter, limit=200)
         names = {ch.id: channel_label(ch) for ch in store.list_channels()}
-        rows = [{
-            "ts": ev.ts,
-            "channel": names.get(ev.channel_id, ev.channel_id or "—"),
-            "actor": ev.actor,
-            "action": ev.action,
-            "detail": ev.detail,
-            "outcome": ev.outcome,
-        } for ev in events]
-        return render(request, "audit.html", active="audit", flash=flash,
-                      events=rows, channel_filter=channel_filter,
-                      channels=store.list_channels(), label=channel_label)
+        rows = [
+            {
+                "ts": ev.ts,
+                "channel": names.get(ev.channel_id, ev.channel_id or "—"),
+                "actor": ev.actor,
+                "action": ev.action,
+                "detail": ev.detail,
+                "outcome": ev.outcome,
+            }
+            for ev in events
+        ]
+        return render(
+            request,
+            "audit.html",
+            active="audit",
+            flash=flash,
+            events=rows,
+            channel_filter=channel_filter,
+            channels=store.list_channels(),
+            label=channel_label,
+        )
 
     # ---------- 7. Usage ----------
 
@@ -565,14 +644,16 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             pct = None
             if budget:
                 pct = min(100, round(u.total / budget * 100)) if budget else 0
-            rows.append({
-                "channel": names.get(u.channel_id, u.channel_id or "—"),
-                "input": u.input_tokens,
-                "output": u.output_tokens,
-                "total": u.total,
-                "budget": budget,
-                "pct": pct,
-            })
+            rows.append(
+                {
+                    "channel": names.get(u.channel_id, u.channel_id or "—"),
+                    "input": u.input_tokens,
+                    "output": u.output_tokens,
+                    "total": u.total,
+                    "budget": budget,
+                    "pct": pct,
+                }
+            )
         return render(request, "usage.html", active="usage", flash=flash, rows=rows)
 
     return app

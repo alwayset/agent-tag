@@ -4,13 +4,13 @@ This is what makes the teammate's memory (the 智库 entity) survive restarts.
 Same capability-fence contract as the in-memory store. Swap for Postgres+pgvector
 when the corpus-ingestion milestone lands (see TODO.md).
 """
+
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 import threading
-
-import re
 
 from agent_tag.models import (
     AuditEvent,
@@ -66,12 +66,14 @@ class SqliteStore(Store):
                 self._conn.execute(
                     "CREATE VIRTUAL TABLE IF NOT EXISTS corpus_fts USING fts5("
                     "workspace_id UNINDEXED, source UNINDEXED, doc_id UNINDEXED, "
-                    "title, url UNINDEXED, chunk_idx UNINDEXED, text)")
+                    "title, url UNINDEXED, chunk_idx UNINDEXED, text)"
+                )
                 self._fts = True
             except sqlite3.OperationalError:
                 self._conn.execute(
                     "CREATE TABLE IF NOT EXISTS corpus_fts(workspace_id, source, doc_id, "
-                    "title, url, chunk_idx, text)")
+                    "title, url, chunk_idx, text)"
+                )
                 self._fts = False
             self._conn.commit()
 
@@ -97,8 +99,10 @@ class SqliteStore(Store):
         return [Organization(r["id"], r["name"]) for r in self._query("SELECT * FROM orgs")]
 
     def put_workspace(self, ws: Workspace) -> None:
-        self._exec("INSERT OR REPLACE INTO workspaces(id,org_id,name) VALUES(?,?,?)",
-                   (ws.id, ws.org_id, ws.name))
+        self._exec(
+            "INSERT OR REPLACE INTO workspaces(id,org_id,name) VALUES(?,?,?)",
+            (ws.id, ws.org_id, ws.name),
+        )
 
     def get_workspace(self, ws_id: str) -> Workspace | None:
         r = self._query("SELECT * FROM workspaces WHERE id=?", (ws_id,))
@@ -113,13 +117,19 @@ class SqliteStore(Store):
 
     # --- users ---
     def _user(self, r: sqlite3.Row) -> User:
-        return User(r["id"], r["org_id"], r["display_name"], Role(r["role"]),
-                    json.loads(r["identities"] or "{}"))
+        return User(
+            r["id"],
+            r["org_id"],
+            r["display_name"],
+            Role(r["role"]),
+            json.loads(r["identities"] or "{}"),
+        )
 
     def put_user(self, user: User) -> None:
         self._exec(
             "INSERT OR REPLACE INTO users(id,org_id,display_name,role,identities) VALUES(?,?,?,?,?)",
-            (user.id, user.org_id, user.display_name, user.role.value, json.dumps(user.identities)))
+            (user.id, user.org_id, user.display_name, user.role.value, json.dumps(user.identities)),
+        )
 
     def get_user(self, user_id: str) -> User | None:
         r = self._query("SELECT * FROM users WHERE id=?", (user_id,))
@@ -141,15 +151,17 @@ class SqliteStore(Store):
     def put_channel(self, ch: Channel) -> None:
         self._exec(
             "INSERT OR REPLACE INTO channels(id,workspace_id,platform,external_id,name) VALUES(?,?,?,?,?)",
-            (ch.id, ch.workspace_id, ch.platform, ch.external_id, ch.name))
+            (ch.id, ch.workspace_id, ch.platform, ch.external_id, ch.name),
+        )
 
     def get_channel(self, channel_id: str) -> Channel | None:
         r = self._query("SELECT * FROM channels WHERE id=?", (channel_id,))
         return self._channel(r[0]) if r else None
 
     def find_channel(self, platform: str, external_id: str) -> Channel | None:
-        r = self._query("SELECT * FROM channels WHERE platform=? AND external_id=?",
-                        (platform, external_id))
+        r = self._query(
+            "SELECT * FROM channels WHERE platform=? AND external_id=?", (platform, external_id)
+        )
         return self._channel(r[0]) if r else None
 
     def list_channels(self, workspace_id: str | None = None) -> list[Channel]:
@@ -165,9 +177,21 @@ class SqliteStore(Store):
                allowed_tools,redaction_enabled,ambient_enabled,ambient_interval_hours,
                require_mention,admin_user_ids,token_budget,display_name)
                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (p.channel_id, p.memory_namespace, p.backend, p.model, json.dumps(p.allowed_tools),
-             int(p.redaction_enabled), int(p.ambient_enabled), p.ambient_interval_hours,
-             int(p.require_mention), json.dumps(p.admin_user_ids), p.token_budget, p.display_name))
+            (
+                p.channel_id,
+                p.memory_namespace,
+                p.backend,
+                p.model,
+                json.dumps(p.allowed_tools),
+                int(p.redaction_enabled),
+                int(p.ambient_enabled),
+                p.ambient_interval_hours,
+                int(p.require_mention),
+                json.dumps(p.admin_user_ids),
+                p.token_budget,
+                p.display_name,
+            ),
+        )
 
     def get_policy(self, channel_id: str) -> ChannelPolicy | None:
         r = self._query("SELECT * FROM policies WHERE channel_id=?", (channel_id,))
@@ -175,27 +199,46 @@ class SqliteStore(Store):
             return None
         x = r[0]
         return ChannelPolicy(
-            channel_id=x["channel_id"], memory_namespace=x["memory_namespace"],
-            backend=x["backend"], model=x["model"],
+            channel_id=x["channel_id"],
+            memory_namespace=x["memory_namespace"],
+            backend=x["backend"],
+            model=x["model"],
             allowed_tools=json.loads(x["allowed_tools"] or "[]"),
             redaction_enabled=bool(x["redaction_enabled"]),
             ambient_enabled=bool(x["ambient_enabled"]),
             ambient_interval_hours=x["ambient_interval_hours"] or 24,
             require_mention=bool(x["require_mention"]),
             admin_user_ids=json.loads(x["admin_user_ids"] or "[]"),
-            token_budget=x["token_budget"], display_name=x["display_name"] or "")
+            token_budget=x["token_budget"],
+            display_name=x["display_name"] or "",
+        )
 
     # --- memory ---
     def _mem(self, r: sqlite3.Row) -> MemoryItem:
-        return MemoryItem(r["id"], r["namespace"], r["kind"], r["content"], r["provenance"],
-                          r["created_at"], r["decay_at"])
+        return MemoryItem(
+            r["id"],
+            r["namespace"],
+            r["kind"],
+            r["content"],
+            r["provenance"],
+            r["created_at"],
+            r["decay_at"],
+        )
 
     def memory_write(self, item: MemoryItem) -> None:
         self._exec(
             "INSERT OR REPLACE INTO memory(id,namespace,kind,content,provenance,created_at,decay_at)"
             " VALUES(?,?,?,?,?,?,?)",
-            (item.id, item.namespace, item.kind, item.content, item.provenance,
-             item.created_at, item.decay_at))
+            (
+                item.id,
+                item.namespace,
+                item.kind,
+                item.content,
+                item.provenance,
+                item.created_at,
+                item.decay_at,
+            ),
+        )
 
     def memory_search(self, namespace: str, query: str, limit: int = 10) -> list[MemoryItem]:
         # the fence: only this namespace's rows are ever loaded
@@ -206,14 +249,17 @@ class SqliteStore(Store):
             items.sort(key=lambda m: m.created_at, reverse=True)
         else:
             terms = set(q.split())
-            items.sort(key=lambda m: (sum(t in m.content.lower() for t in terms), m.created_at),
-                       reverse=True)
+            items.sort(
+                key=lambda m: (sum(t in m.content.lower() for t in terms), m.created_at),
+                reverse=True,
+            )
         return items[:limit]
 
     def list_memory(self, namespace: str, limit: int = 200) -> list[MemoryItem]:
         rows = self._query(
             "SELECT * FROM memory WHERE namespace=? ORDER BY created_at DESC LIMIT ?",
-            (namespace, limit))
+            (namespace, limit),
+        )
         return [self._mem(r) for r in rows]
 
     def get_memory(self, item_id: str) -> MemoryItem | None:
@@ -237,17 +283,30 @@ class SqliteStore(Store):
         self._exec(
             "INSERT OR REPLACE INTO audit(id,ts,channel_id,actor,requested_by,action,detail,outcome)"
             " VALUES(?,?,?,?,?,?,?,?)",
-            (e.id, e.ts, e.channel_id, e.actor, e.requested_by, e.action, e.detail, e.outcome))
+            (e.id, e.ts, e.channel_id, e.actor, e.requested_by, e.action, e.detail, e.outcome),
+        )
 
     def list_audit(self, channel_id: str | None = None, limit: int = 200) -> list[AuditEvent]:
         if channel_id:
             rows = self._query(
                 "SELECT * FROM audit WHERE channel_id=? ORDER BY ts DESC LIMIT ?",
-                (channel_id, limit))
+                (channel_id, limit),
+            )
         else:
             rows = self._query("SELECT * FROM audit ORDER BY ts DESC LIMIT ?", (limit,))
-        return [AuditEvent(r["id"], r["ts"], r["channel_id"], r["actor"], r["requested_by"],
-                           r["action"], r["detail"], r["outcome"]) for r in rows]
+        return [
+            AuditEvent(
+                r["id"],
+                r["ts"],
+                r["channel_id"],
+                r["actor"],
+                r["requested_by"],
+                r["action"],
+                r["detail"],
+                r["outcome"],
+            )
+            for r in rows
+        ]
 
     # --- settings ---
     def get_setting(self, key: str) -> str | None:
@@ -268,7 +327,8 @@ class SqliteStore(Store):
                 "ON CONFLICT(channel_id) DO UPDATE SET "
                 "input_tokens=input_tokens+excluded.input_tokens, "
                 "output_tokens=output_tokens+excluded.output_tokens",
-                (channel_id, input_tokens, output_tokens))
+                (channel_id, input_tokens, output_tokens),
+            )
             self._conn.commit()
 
     def get_usage(self, channel_id: str) -> TokenUsage:
@@ -278,19 +338,30 @@ class SqliteStore(Store):
         return TokenUsage(channel_id, r[0]["input_tokens"], r[0]["output_tokens"])
 
     def list_usage(self) -> list[TokenUsage]:
-        return [TokenUsage(r["channel_id"], r["input_tokens"], r["output_tokens"])
-                for r in self._query("SELECT * FROM usage")]
+        return [
+            TokenUsage(r["channel_id"], r["input_tokens"], r["output_tokens"])
+            for r in self._query("SELECT * FROM usage")
+        ]
 
     # --- corpus ---
     def corpus_add(self, c: CorpusChunk) -> None:
         self._exec(
             "INSERT INTO corpus_fts(workspace_id,source,doc_id,title,url,chunk_idx,text)"
             " VALUES(?,?,?,?,?,?,?)",
-            (c.workspace_id, c.source, c.doc_id, c.title, c.url, c.chunk_idx, c.text))
+            (c.workspace_id, c.source, c.doc_id, c.title, c.url, c.chunk_idx, c.text),
+        )
 
     def _row_to_chunk(self, r: sqlite3.Row, score: float = 0.0) -> CorpusChunk:
-        return CorpusChunk(r["workspace_id"], r["source"], r["doc_id"], r["title"],
-                           r["url"], r["chunk_idx"], r["text"], score)
+        return CorpusChunk(
+            r["workspace_id"],
+            r["source"],
+            r["doc_id"],
+            r["title"],
+            r["url"],
+            r["chunk_idx"],
+            r["text"],
+            score,
+        )
 
     def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
         tokens = re.findall(r"\w+", query.lower())
@@ -302,7 +373,8 @@ class SqliteStore(Store):
                 rows = self._query(
                     "SELECT *, bm25(corpus_fts) AS rank FROM corpus_fts "
                     "WHERE workspace_id=? AND corpus_fts MATCH ? ORDER BY rank LIMIT ?",
-                    (workspace_id, match, limit))
+                    (workspace_id, match, limit),
+                )
                 return [self._row_to_chunk(r, -float(r["rank"])) for r in rows]
             except sqlite3.OperationalError:
                 pass  # fall through to LIKE
@@ -320,12 +392,14 @@ class SqliteStore(Store):
     def corpus_clear(self, workspace_id: str, source: str | None = None) -> int:
         with self._lock:
             if source is None:
-                cur = self._conn.execute("DELETE FROM corpus_fts WHERE workspace_id=?",
-                                         (workspace_id,))
+                cur = self._conn.execute(
+                    "DELETE FROM corpus_fts WHERE workspace_id=?", (workspace_id,)
+                )
             else:
                 cur = self._conn.execute(
                     "DELETE FROM corpus_fts WHERE workspace_id=? AND source=?",
-                    (workspace_id, source))
+                    (workspace_id, source),
+                )
             self._conn.commit()
             return cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
 
@@ -333,11 +407,21 @@ class SqliteStore(Store):
         rows = self._query(
             "SELECT doc_id, title, url, source, COUNT(*) AS chunks FROM corpus_fts "
             "WHERE workspace_id=? GROUP BY doc_id, title, url, source ORDER BY title",
-            (workspace_id,))
-        return [{"doc_id": r["doc_id"], "title": r["title"], "url": r["url"],
-                 "source": r["source"], "chunks": r["chunks"]} for r in rows]
+            (workspace_id,),
+        )
+        return [
+            {
+                "doc_id": r["doc_id"],
+                "title": r["title"],
+                "url": r["url"],
+                "source": r["source"],
+                "chunks": r["chunks"],
+            }
+            for r in rows
+        ]
 
     def corpus_count(self, workspace_id: str) -> int:
-        r = self._query("SELECT COUNT(*) AS n FROM corpus_fts WHERE workspace_id=?",
-                        (workspace_id,))
+        r = self._query(
+            "SELECT COUNT(*) AS n FROM corpus_fts WHERE workspace_id=?", (workspace_id,)
+        )
         return r[0]["n"] if r else 0

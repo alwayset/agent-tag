@@ -1,4 +1,5 @@
 """SettingsService: env seed, DB override, masking, effective config."""
+
 from agent_tag.config import Config
 from agent_tag.settings import SettingsService
 from agent_tag.store.memory_store import InMemoryStore
@@ -7,8 +8,8 @@ from agent_tag.store.memory_store import InMemoryStore
 def test_seed_from_env_and_override():
     env = Config(lark_app_id="cli_env", anthropic_api_key="sk-env")
     s = SettingsService(InMemoryStore(), env)
-    assert s.get("lark_app_id") == "cli_env"          # seeded from env
-    s.set("lark_app_id", "cli_ui")                    # UI override
+    assert s.get("lark_app_id") == "cli_env"  # seeded from env
+    s.set("lark_app_id", "cli_ui")  # UI override
     assert s.get("lark_app_id") == "cli_ui"
 
 
@@ -23,7 +24,7 @@ def test_update_many_ignores_blank_secret():
     env = Config(anthropic_api_key="sk-keep")
     s = SettingsService(InMemoryStore(), env)
     s.update_many({"anthropic_api_key": "", "lark_app_id": "cli_new"})
-    assert s.get("anthropic_api_key") == "sk-keep"    # blank secret submit is ignored
+    assert s.get("anthropic_api_key") == "sk-keep"  # blank secret submit is ignored
     assert s.get("lark_app_id") == "cli_new"
 
 

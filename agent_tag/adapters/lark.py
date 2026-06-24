@@ -26,6 +26,7 @@ Relevant SDK docs:
   - Get message resource (im.v1.message_resource.get, file_key + type):
     https://open.larksuite.com/document/server-docs/im-v1/message/get-2
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -149,9 +150,7 @@ class LarkAdapter(Adapter):
         # can pull via message_resource. The file_key lives in the content JSON.
         files: list[FileRef] = []
         if msg.message_type in ("image", "file", "audio", "media") and msg.content:
-            files = self._extract_files(
-                msg.message_type, msg.content, msg.message_id or ""
-            )
+            files = self._extract_files(msg.message_type, msg.content, msg.message_id or "")
 
         return InboundEvent(
             platform=self.platform,
@@ -202,19 +201,30 @@ class LarkAdapter(Adapter):
             .register_p2_im_message_receive_v1(self._on_message)
             .build()
         )
-        self._ws_client = lark.ws.Client(
-            self.config.lark_app_id,
-            self.config.lark_app_secret,
-            event_handler=handler,
-            domain=self._domain,
-            log_level=lark.LogLevel.INFO,
-        )
-
-        # ws.Client.start() is synchronous + blocking (it owns the reconnect
-        # loop), so run it on a worker thread. Exceptions there are surfaced via
+        # ws.Client.start() is synchronous + blocking and runs its OWN asyncio
+        # loop via run_until_complete. So it must own a fresh event loop on the
+        # worker thread — and the Client must be CONSTRUCTED on that same thread,
+        # otherwise lark-oapi binds to the main running loop and start() fails
+        # with "This event loop is already running". Exceptions are surfaced via
         # the sentinel so the generator can stop.
         def _run_ws() -> None:
+            # lark-oapi's ws client drives a MODULE-LEVEL `loop` it captured at
+            # import time (the app's main loop). We repoint it at a fresh,
+            # non-running loop on this worker thread so its run_until_complete
+            # calls don't collide with the running main loop.
+            import lark_oapi.ws.client as _ws_mod
+
+            worker_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(worker_loop)
+            _ws_mod.loop = worker_loop
             try:
+                self._ws_client = lark.ws.Client(
+                    self.config.lark_app_id,
+                    self.config.lark_app_secret,
+                    event_handler=handler,
+                    domain=self._domain,
+                    log_level=lark.LogLevel.INFO,
+                )
                 self._ws_client.start()  # blocks until the connection is torn down
             except Exception:
                 logger.exception("LarkAdapter: WS client stopped with error")
@@ -236,9 +246,7 @@ class LarkAdapter(Adapter):
     # --------------------------------------------------------------------- #
     # Outbound
     # --------------------------------------------------------------------- #
-    async def send(
-        self, channel_id: str, text: str, *, thread_id: str | None = None
-    ) -> str | None:
+    async def send(self, channel_id: str, text: str, *, thread_id: str | None = None) -> str | None:
         """Send a text message to a chat.
 
         If `thread_id` looks like a message_id (om_...) we reply to it so the
@@ -267,7 +275,9 @@ class LarkAdapter(Adapter):
             if not resp.success():
                 logger.error(
                     "LarkAdapter reply failed: code=%s msg=%s log_id=%s",
-                    resp.code, resp.msg, resp.get_log_id(),
+                    resp.code,
+                    resp.msg,
+                    resp.get_log_id(),
                 )
                 return None
             return resp.data.message_id if resp.data else None
@@ -288,7 +298,9 @@ class LarkAdapter(Adapter):
         if not resp.success():
             logger.error(
                 "LarkAdapter send failed: code=%s msg=%s log_id=%s",
-                resp.code, resp.msg, resp.get_log_id(),
+                resp.code,
+                resp.msg,
+                resp.get_log_id(),
             )
             return None
         return resp.data.message_id if resp.data else None
@@ -332,7 +344,9 @@ class LarkAdapter(Adapter):
         if not resp.success():
             logger.error(
                 "LarkAdapter.fetch_file failed: code=%s msg=%s log_id=%s",
-                resp.code, resp.msg, resp.get_log_id(),
+                resp.code,
+                resp.msg,
+                resp.get_log_id(),
             )
             return None
         # resp.file is a file-like IO[bytes] streamed from the API.

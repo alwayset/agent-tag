@@ -4,13 +4,38 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agent-tag"
-version = "0.0.1"
-description = "Open, agent-agnostic, platform-agnostic AI teammate for group chat (Lark / Slack / Discord)."
+version = "0.1.0"
+description = "Open, self-hosted, agent-agnostic AI teammate for group chat (Lark / Slack / Discord) that indexes your existing docs."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
-authors = [{ name = "Agent Tag contributors" }]
-keywords = ["ai", "agent", "slack", "lark", "feishu", "discord", "bot", "teammate"]
+license = "Apache-2.0"
+authors = [{ name = "Sha Tao" }]
+maintainers = [{ name = "Sha Tao" }]
+keywords = [
+    "lark",
+    "feishu",
+    "slack",
+    "discord",
+    "ai-agent",
+    "llm",
+    "chatbot",
+    "self-hosted",
+    "knowledge-base",
+    "claude",
+    "codex",
+    "rag",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Chat",
+    "Topic :: Office/Business",
+    "Operating System :: OS Independent",
+]
 dependencies = []  # core runs on the stdlib — adapters/backends pull their own extras
 
 [project.optional-dependencies]
@@ -25,16 +50,40 @@ all = ["fastapi>=0.110", "uvicorn>=0.29", "jinja2>=3.1", "python-multipart>=0.0.
        "anthropic>=0.45", "openai>=1.50"]
 dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
 
+[project.urls]
+Homepage = "https://alwayset.github.io/agent-tag"
+Repository = "https://github.com/alwayset/agent-tag"
+Issues = "https://github.com/alwayset/agent-tag/issues"
+Changelog = "https://github.com/alwayset/agent-tag/blob/main/CHANGELOG.md"
+
 [project.scripts]
 agent-tag = "agent_tag.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["agent_tag"]
+# Ship non-Python package data (admin console templates/static + typing marker) in the wheel.
+include = [
+    "agent_tag/web/templates/**",
+    "agent_tag/web/static/**",
+    "agent_tag/py.typed",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "agent_tag/**",
+    "tests/**",
+    "docs/**",
+    "site/**",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    ".env.example",
+    "Dockerfile",
+    "docker-compose.yml",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py311"
+# Ruff configuration lives in ruff.toml (single source of truth).

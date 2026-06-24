@@ -1,4 +1,5 @@
 """Lightweight policy checks used by the orchestrator."""
+
 from __future__ import annotations
 
 from agent_tag.adapters.base import InboundEvent

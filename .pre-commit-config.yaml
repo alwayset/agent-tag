@@ -1,0 +1,20 @@
+# Pre-commit hooks for Agent Tag.
+# Install once:  pip install pre-commit && pre-commit install
+# Run on demand: pre-commit run --all-files
+#
+# ruff config lives in ruff.toml (line-length 100, double quotes, py311).
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.0
+    hooks:
+      - id: ruff
+        name: ruff (lint + autofix)
+        args: [--fix]
+      - id: ruff-format
+        name: ruff (format)
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace

@@ -5,6 +5,7 @@ defaults (12-factor / headless deploys). On first run the DB is seeded from env 
 either workflow works. The web UI reads `SETTING_SPECS` to render the Connections
 page generically and masks secrets.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,31 +26,66 @@ class SettingSpec:
 
 SETTING_SPECS: list[SettingSpec] = [
     # Lark
-    SettingSpec("lark_app_id", "Lark App ID", "Lark", help="From the Lark Developer Console.",
-                placeholder="cli_xxx"),
+    SettingSpec(
+        "lark_app_id",
+        "Lark App ID",
+        "Lark",
+        help="From the Lark Developer Console.",
+        placeholder="cli_xxx",
+    ),
     SettingSpec("lark_app_secret", "Lark App Secret", "Lark", secret=True),
-    SettingSpec("lark_domain", "Lark Domain", "Lark",
-                help="International: https://open.larksuite.com · Feishu: https://open.feishu.cn",
-                placeholder="https://open.larksuite.com"),
+    SettingSpec(
+        "lark_domain",
+        "Lark Domain",
+        "Lark",
+        help="International: https://open.larksuite.com · Feishu: https://open.feishu.cn",
+        placeholder="https://open.larksuite.com",
+    ),
     # Backends
-    SettingSpec("anthropic_api_key", "Anthropic API Key", "Backend — Claude (API)", secret=True,
-                help="BYO key — the compliant path for a shared/hosted bot.", placeholder="sk-ant-..."),
-    SettingSpec("openai_api_key", "OpenAI API Key", "Backend — OpenAI (API)", secret=True,
-                placeholder="sk-..."),
-    SettingSpec("cli_command", "Coding-agent CLI command", "Backend — Coding plan (local CLI)",
-                help="'claude' (Claude Code) or 'codex'. Uses YOUR local plan; self-host only.",
-                placeholder="claude"),
-    SettingSpec("default_model", "Default model id", "Backend — defaults",
-                placeholder="claude-opus-4-8"),
-    SettingSpec("default_backend", "Default backend for new channels", "Backend — defaults",
-                help="echo | claude | openai | cli", placeholder="claude"),
+    SettingSpec(
+        "anthropic_api_key",
+        "Anthropic API Key",
+        "Backend — Claude (API)",
+        secret=True,
+        help="BYO key — the compliant path for a shared/hosted bot.",
+        placeholder="sk-ant-...",
+    ),
+    SettingSpec(
+        "openai_api_key",
+        "OpenAI API Key",
+        "Backend — OpenAI (API)",
+        secret=True,
+        placeholder="sk-...",
+    ),
+    SettingSpec(
+        "cli_command",
+        "Coding-agent CLI command",
+        "Backend — Coding plan (local CLI)",
+        help="'claude' (Claude Code) or 'codex'. Uses YOUR local plan; self-host only.",
+        placeholder="claude",
+    ),
+    SettingSpec(
+        "default_model", "Default model id", "Backend — defaults", placeholder="claude-opus-4-8"
+    ),
+    SettingSpec(
+        "default_backend",
+        "Default backend for new channels",
+        "Backend — defaults",
+        help="echo | claude | openai | cli",
+        placeholder="claude",
+    ),
     # Slack / Discord (optional)
     SettingSpec("slack_bot_token", "Slack Bot Token", "Slack", secret=True, placeholder="xoxb-..."),
     SettingSpec("slack_app_token", "Slack App Token", "Slack", secret=True, placeholder="xapp-..."),
     SettingSpec("discord_token", "Discord Bot Token", "Discord", secret=True),
     # Runtime
-    SettingSpec("enabled_adapters", "Enabled chat platforms", "Runtime",
-                help="Comma-separated: lark, slack, discord", placeholder="lark"),
+    SettingSpec(
+        "enabled_adapters",
+        "Enabled chat platforms",
+        "Runtime",
+        help="Comma-separated: lark, slack, discord",
+        placeholder="lark",
+    ),
 ]
 
 _SECRET_KEYS = {s.key for s in SETTING_SPECS if s.secret}
