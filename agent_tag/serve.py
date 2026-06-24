@@ -21,7 +21,10 @@ from agent_tag.store.sqlite_store import SqliteStore
 
 
 def _adapter_ready(name: str, cfg: Config) -> bool:
-    if name == "lark":
+    if name == "larkcli":                       # smooth path: just needs lark-cli authed
+        from agent_tag.lark_cli import find_lark_cli
+        return bool(find_lark_cli(cfg))
+    if name == "lark":                          # custom-app path: needs app creds
         return bool(cfg.lark_app_id and cfg.lark_app_secret)
     if name == "slack":
         return bool(cfg.slack_bot_token and cfg.slack_app_token)

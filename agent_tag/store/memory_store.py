@@ -9,6 +9,7 @@ from agent_tag.models import (
     AuditEvent,
     Channel,
     ChannelPolicy,
+    CorpusChunk,
     MemoryItem,
     Organization,
     TokenUsage,
@@ -30,6 +31,7 @@ class InMemoryStore(Store):
         self._audit: list[AuditEvent] = []
         self._settings: dict[str, str] = {}
         self._usage: dict[str, TokenUsage] = {}
+        self._corpus: list[CorpusChunk] = []
 
     # --- orgs / workspaces ---
     def put_org(self, org: Organization) -> None:
@@ -161,3 +163,44 @@ class InMemoryStore(Store):
 
     def list_usage(self) -> list[TokenUsage]:
         return list(self._usage.values())
+
+    # --- corpus ---
+    def corpus_add(self, chunk: CorpusChunk) -> None:
+        self._corpus.append(chunk)
+
+    def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
+        rows = [c for c in self._corpus if c.workspace_id == workspace_id]   # the fence
+        terms = [t for t in query.lower().split() if t]
+        if not terms:
+            return []
+        scored = []
+        for c in rows:
+            lc = c.text.lower()
+            score = sum(lc.count(t) for t in terms)
+            if score:
+                scored.append((score, c))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        out = []
+        for score, c in scored[:limit]:
+            out.append(CorpusChunk(c.workspace_id, c.source, c.doc_id, c.title, c.url,
+                                   c.chunk_idx, c.text, float(score)))
+        return out
+
+    def corpus_clear(self, workspace_id: str, source: str | None = None) -> int:
+        before = len(self._corpus)
+        self._corpus = [c for c in self._corpus
+                        if not (c.workspace_id == workspace_id and (source is None or c.source == source))]
+        return before - len(self._corpus)
+
+    def corpus_docs(self, workspace_id: str) -> list[dict]:
+        docs: dict[str, dict] = {}
+        for c in self._corpus:
+            if c.workspace_id != workspace_id:
+                continue
+            d = docs.setdefault(c.doc_id, {"doc_id": c.doc_id, "title": c.title,
+                                           "url": c.url, "source": c.source, "chunks": 0})
+            d["chunks"] += 1
+        return list(docs.values())
+
+    def corpus_count(self, workspace_id: str) -> int:
+        return sum(1 for c in self._corpus if c.workspace_id == workspace_id)

@@ -10,10 +10,13 @@ import json
 import sqlite3
 import threading
 
+import re
+
 from agent_tag.models import (
     AuditEvent,
     Channel,
     ChannelPolicy,
+    CorpusChunk,
     MemoryItem,
     Organization,
     Role,
@@ -58,6 +61,18 @@ class SqliteStore(Store):
         self._conn.execute("PRAGMA journal_mode=WAL;")
         with self._lock:
             self._conn.executescript(_SCHEMA)
+            # Corpus index: prefer FTS5, fall back to a plain table + LIKE search.
+            try:
+                self._conn.execute(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS corpus_fts USING fts5("
+                    "workspace_id UNINDEXED, source UNINDEXED, doc_id UNINDEXED, "
+                    "title, url UNINDEXED, chunk_idx UNINDEXED, text)")
+                self._fts = True
+            except sqlite3.OperationalError:
+                self._conn.execute(
+                    "CREATE TABLE IF NOT EXISTS corpus_fts(workspace_id, source, doc_id, "
+                    "title, url, chunk_idx, text)")
+                self._fts = False
             self._conn.commit()
 
     # --- helpers ---
@@ -265,3 +280,64 @@ class SqliteStore(Store):
     def list_usage(self) -> list[TokenUsage]:
         return [TokenUsage(r["channel_id"], r["input_tokens"], r["output_tokens"])
                 for r in self._query("SELECT * FROM usage")]
+
+    # --- corpus ---
+    def corpus_add(self, c: CorpusChunk) -> None:
+        self._exec(
+            "INSERT INTO corpus_fts(workspace_id,source,doc_id,title,url,chunk_idx,text)"
+            " VALUES(?,?,?,?,?,?,?)",
+            (c.workspace_id, c.source, c.doc_id, c.title, c.url, c.chunk_idx, c.text))
+
+    def _row_to_chunk(self, r: sqlite3.Row, score: float = 0.0) -> CorpusChunk:
+        return CorpusChunk(r["workspace_id"], r["source"], r["doc_id"], r["title"],
+                           r["url"], r["chunk_idx"], r["text"], score)
+
+    def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
+        tokens = re.findall(r"\w+", query.lower())
+        if not tokens:
+            return []
+        if self._fts:
+            match = " OR ".join(f'"{t}"' for t in tokens)
+            try:
+                rows = self._query(
+                    "SELECT *, bm25(corpus_fts) AS rank FROM corpus_fts "
+                    "WHERE workspace_id=? AND corpus_fts MATCH ? ORDER BY rank LIMIT ?",
+                    (workspace_id, match, limit))
+                return [self._row_to_chunk(r, -float(r["rank"])) for r in rows]
+            except sqlite3.OperationalError:
+                pass  # fall through to LIKE
+        # LIKE fallback (no FTS5): score by term occurrence
+        rows = self._query("SELECT * FROM corpus_fts WHERE workspace_id=?", (workspace_id,))
+        scored = []
+        for r in rows:
+            lc = (r["text"] or "").lower()
+            sc = sum(lc.count(t) for t in tokens)
+            if sc:
+                scored.append((sc, r))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [self._row_to_chunk(r, float(sc)) for sc, r in scored[:limit]]
+
+    def corpus_clear(self, workspace_id: str, source: str | None = None) -> int:
+        with self._lock:
+            if source is None:
+                cur = self._conn.execute("DELETE FROM corpus_fts WHERE workspace_id=?",
+                                         (workspace_id,))
+            else:
+                cur = self._conn.execute(
+                    "DELETE FROM corpus_fts WHERE workspace_id=? AND source=?",
+                    (workspace_id, source))
+            self._conn.commit()
+            return cur.rowcount if cur.rowcount and cur.rowcount > 0 else 0
+
+    def corpus_docs(self, workspace_id: str) -> list[dict]:
+        rows = self._query(
+            "SELECT doc_id, title, url, source, COUNT(*) AS chunks FROM corpus_fts "
+            "WHERE workspace_id=? GROUP BY doc_id, title, url, source ORDER BY title",
+            (workspace_id,))
+        return [{"doc_id": r["doc_id"], "title": r["title"], "url": r["url"],
+                 "source": r["source"], "chunks": r["chunks"]} for r in rows]
+
+    def corpus_count(self, workspace_id: str) -> int:
+        r = self._query("SELECT COUNT(*) AS n FROM corpus_fts WHERE workspace_id=?",
+                        (workspace_id,))
+        return r[0]["n"] if r else 0

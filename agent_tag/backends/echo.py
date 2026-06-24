@@ -30,5 +30,8 @@ class EchoBackend(BackendAdapter):
         )
         if known:
             reply += " Most recent: " + known[0]
+        docs = md.get("doc_titles", [])
+        if docs:
+            reply += f" Relevant company docs: {', '.join(docs[:3])}."
         yield Delta(type="text", text=reply)
         yield Delta(type="done")

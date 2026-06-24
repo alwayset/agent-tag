@@ -28,8 +28,44 @@ def main(argv: list[str] | None = None) -> int:
     run_p.add_argument("--backend", help=f"agent backend {backends_available()}")
     run_p.add_argument("--model", help="model id for the backend")
 
+    sub.add_parser("lark-spaces", help="list your Lark wiki spaces (via lark-cli)")
+
+    ing_p = sub.add_parser("ingest", help="ingest a Lark wiki space into the knowledge base")
+    ing_p.add_argument("--space", required=True, help="wiki space_id (see `lark-spaces`)")
+    ing_p.add_argument("--name", default="", help="optional friendly name")
+    ing_p.add_argument("--db", help="sqlite db path (default agent_tag.db)")
+
     args = parser.parse_args(argv)
     config = Config.from_env()
+
+    if args.cmd == "lark-spaces":
+        from agent_tag.ingest import list_wiki_spaces
+        from agent_tag.lark_cli import LarkCli
+        spaces = list_wiki_spaces(LarkCli(config=config))
+        for s in spaces:
+            print(f"  {s.get('space_id'):<22} {s.get('name')}")
+        print(f"\n{len(spaces)} space(s). Ingest one with: agent-tag ingest --space <space_id>")
+        return 0
+
+    if args.cmd == "ingest":
+        if args.db:
+            config.db_path = args.db
+        from agent_tag.app import build_core
+        from agent_tag.ingest import ingest_wiki_space
+        from agent_tag.settings import SettingsService
+        from agent_tag.store.sqlite_store import SqliteStore
+        store = SqliteStore(config.db_path)
+        settings = SettingsService(store, config)
+        cfg = settings.effective_config()
+        cfg.db_path = config.db_path
+        core = build_core(cfg, store, settings)
+        print(f"[agent-tag] ingesting wiki space {args.space} → workspace {core.workspace_id} ...")
+        stats = ingest_wiki_space(store, core.workspace_id, args.space,
+                                  space_name=args.name, domain=cfg.lark_domain)
+        print(f"[agent-tag] done: {stats['docs']} docs, {stats['chunks']} chunks indexed, "
+              f"{stats['skipped']} skipped. Total in workspace: "
+              f"{store.corpus_count(core.workspace_id)} chunks.")
+        return 0
 
     if args.cmd == "serve":
         if args.host:

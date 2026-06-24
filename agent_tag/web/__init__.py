@@ -48,6 +48,7 @@ NAV = [
     ("connections", "Connections", "/connections"),
     ("workspace", "Workspace", "/workspace"),
     ("channels", "Channels", "/workspace"),
+    ("knowledge", "Knowledge", "/knowledge"),
     ("memory", "Memory", "/memory"),
     ("audit", "Audit", "/audit"),
     ("usage", "Usage", "/usage"),
@@ -190,6 +191,7 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             or (settings.get("default_backend") or "").strip() == "cli"
         )
         channel_ok = len(channels) >= 1
+        corpus_chunks = store.corpus_count(core.workspace_id)
         checklist = [
             {"label": "Connect Lark", "done": lark_ok,
              "hint": "Add your Lark App ID, Secret, and domain.",
@@ -200,13 +202,17 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
             {"label": "Bind at least one channel", "done": channel_ok,
              "hint": "Point the teammate at a chat where it should live.",
              "link": "/workspace"},
+            {"label": "Ingest your Lark knowledge base", "done": corpus_chunks > 0,
+             "hint": "Index your existing Lark wiki so the teammate answers from your real docs.",
+             "link": "/knowledge"},
         ]
         all_done = all(c["done"] for c in checklist)
 
         return render(
             request, "dashboard.html", active="dashboard", flash=flash,
             checklist=checklist, all_done=all_done,
-            counts={"channels": len(channels), "users": len(users), "memory": mem_total},
+            counts={"channels": len(channels), "users": len(users),
+                    "memory": mem_total, "knowledge": corpus_chunks},
             enabled_adapters=settings.enabled_adapters(),
             backends=list(core.backends),
             default_backend=(settings.get("default_backend") or "echo"),
@@ -230,9 +236,17 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
                 "value": "" if spec.secret else (settings.get(spec.key) or ""),
                 "secret_set": bool(spec.secret and (settings.get(spec.key) or "").strip()),
             })
+        from agent_tag.lark_cli import LarkCli
+
+        lark_who = None
+        try:
+            lark_who = LarkCli(config=config).whoami()
+        except Exception:  # noqa: BLE001
+            lark_who = None
         return render(
             request, "connections.html", active="connections", flash=flash,
-            groups=groups,
+            groups=groups, lark_who=lark_who,
+            enabled_adapters=settings.enabled_adapters(),
         )
 
     @app.post("/connections")
@@ -439,6 +453,79 @@ def create_app(core: "CoreBundle", settings: "SettingsService", config: "Config"
         back = (form.get("back") or "/memory").strip()
         store.delete_memory(item_id)
         return flash_redirect(back, "Memory deleted.")
+
+    # ---------- 5b. Knowledge ----------
+
+    @app.get("/knowledge", response_class=HTMLResponse)
+    async def knowledge_page(request: Request, flash: str = ""):
+        if (r := guard(request)) is not None:
+            return r
+        import asyncio
+
+        from agent_tag.ingest import list_wiki_spaces
+        from agent_tag.lark_cli import LarkCli
+
+        who = None
+        try:
+            who = LarkCli(config=config).whoami()
+        except Exception:  # noqa: BLE001
+            who = None
+
+        docs = store.corpus_docs(core.workspace_id)
+        total_chunks = store.corpus_count(core.workspace_id)
+
+        # Only attempt to list spaces when the CLI reports an authorized identity;
+        # the network call is blocking, so hand it off the event loop.
+        spaces: list[dict] = []
+        spaces_error = ""
+        if who:
+            try:
+                spaces = await asyncio.to_thread(list_wiki_spaces, LarkCli(config=config))
+            except Exception as exc:  # noqa: BLE001
+                spaces = []
+                spaces_error = str(exc)[:300]
+        return render(
+            request, "knowledge.html", active="knowledge", flash=flash,
+            who=who, docs=docs, total_chunks=total_chunks,
+            spaces=spaces, spaces_error=spaces_error,
+        )
+
+    @app.post("/knowledge/ingest")
+    async def knowledge_ingest(request: Request):
+        if (r := guard(request)) is not None:
+            return r
+        import asyncio
+
+        from agent_tag.ingest import ingest_wiki_space
+
+        form = await request.form()
+        space_id = (form.get("space_id") or "").strip()
+        name = (form.get("name") or "").strip()
+        if not space_id:
+            return flash_redirect("/knowledge", "A space id is required.")
+        try:
+            stats = await asyncio.to_thread(
+                ingest_wiki_space, core.store, core.workspace_id, space_id,
+                space_name=name, domain=config.lark_domain,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return flash_redirect("/knowledge", f"Ingest failed: {str(exc)[:200]}")
+        return flash_redirect(
+            "/knowledge",
+            "Ingested {docs} docs / {chunks} chunks from {name} ({skipped} skipped).".format(
+                docs=stats.get("docs", 0),
+                chunks=stats.get("chunks", 0),
+                name=stats.get("space_name") or name or space_id,
+                skipped=stats.get("skipped", 0),
+            ),
+        )
+
+    @app.post("/knowledge/clear")
+    async def knowledge_clear(request: Request):
+        if (r := guard(request)) is not None:
+            return r
+        core.store.corpus_clear(core.workspace_id)
+        return flash_redirect("/knowledge", "Knowledge base cleared.")
 
     # ---------- 6. Audit ----------
 

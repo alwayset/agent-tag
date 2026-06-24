@@ -17,6 +17,7 @@ from agent_tag.models import (
     AuditEvent,
     Channel,
     ChannelPolicy,
+    CorpusChunk,
     MemoryItem,
     Organization,
     TokenUsage,
@@ -100,3 +101,17 @@ class Store(abc.ABC):
     def get_usage(self, channel_id: str) -> TokenUsage: ...
     @abc.abstractmethod
     def list_usage(self) -> list[TokenUsage]: ...
+
+    # --- corpus (ingested org knowledge, workspace-scoped) ---
+    @abc.abstractmethod
+    def corpus_add(self, chunk: CorpusChunk) -> None: ...
+    @abc.abstractmethod
+    def corpus_search(self, workspace_id: str, query: str, limit: int = 6) -> list[CorpusChunk]:
+        """Full-text retrieval over the workspace's ingested docs ONLY."""
+    @abc.abstractmethod
+    def corpus_clear(self, workspace_id: str, source: str | None = None) -> int: ...
+    @abc.abstractmethod
+    def corpus_docs(self, workspace_id: str) -> list[dict]:
+        """Distinct docs: [{doc_id, title, url, source, chunks}], for the UI."""
+    @abc.abstractmethod
+    def corpus_count(self, workspace_id: str) -> int: ...

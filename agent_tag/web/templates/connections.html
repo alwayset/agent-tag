@@ -10,6 +10,26 @@
   {% for group, specs in groups.items() %}
     <div class="card">
       <h2>{{ group }}</h2>
+      {% if group == "Lark" %}
+        <div style="margin-bottom:16px;">
+          {% if lark_who %}
+            <div class="chips">
+              <span class="pill on">✓ Connected via Lark CLI as {{ lark_who.user or "—" }}</span>
+              {% if lark_who.app_id %}<span class="pill muted">app {{ lark_who.app_id }}</span>{% endif %}
+            </div>
+          {% else %}
+            <div class="note">
+              Lark CLI not authorized — run <span class="mono">lark-cli auth login</span> in your terminal
+              (it opens a link to authorize), then reload.
+            </div>
+          {% endif %}
+          <div class="hint" style="margin-top:8px;">
+            <span class="mono">larkcli</span> is the recommended smooth adapter — it uses your CLI login, so
+            there are no app scopes to configure.
+            {% if "larkcli" in enabled_adapters %}<span class="pill on" style="margin-left:6px;">enabled</span>{% endif %}
+          </div>
+        </div>
+      {% endif %}
       {% if group.startswith("Backend — Coding plan") %}
         <div class="note" style="margin-bottom:16px;">
           Coding-plan via your own local CLI runs on <strong>YOUR</strong> plan (self-host only).

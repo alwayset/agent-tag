@@ -22,29 +22,20 @@ Status legend: `[ ]` not started · `[~]` partial/scaffolded · `[x]` done
 - ✅ admin governance (per-channel tool scope field, token budgets, audit log) · ✅ ambient (deterministic v1)
 - ▲ connectors/tools at query-time + corpus ingestion/index = the next milestone (below)
 
-## 🔜 Corpus ingestion + indexing  ← the moat (deferred per Eric, the big TODO)
-> Read an org's EXISTING knowledge, organize it, and index it for retrieval.
-> Claude Tag does NOT do this (connectors are query-time, no Lark connector).
-> This is where Agent Tag wins. Land it as its own milestone.
+## ✅ Corpus ingestion + indexing  ← the moat (LIVE — tested on real Lark, 210 docs/885 chunks)
+> Read an org's EXISTING knowledge, index it, retrieve at query time.
+> Claude Tag does NOT do this (connectors are query-time, no Lark connector). This is the wedge.
 
-- [ ] **Storage swap:** add `PostgresStore` (Store impl) with **pgvector** for embeddings
-      (the in-memory store stays the default for `console`/tests).
-- [ ] **Embedding layer:** pluggable embedder (BYO key) → chunk → vector index, keyed by namespace.
-- [ ] **Lark corpus crawler** (`ingestion/lark.py`):
-      - Wiki: `GET /open-apis/wiki/v2/spaces` → `…/spaces/{id}/nodes` (recurse on `has_child`)
-        → resolve `obj_token`/`obj_type` → `docx` `raw_content`/blocks.
-      - Drive: `GET /open-apis/drive/v1/files` folder walk (recurse).
-      - Sheets / Bitable: separate readers.
-      - Auth: `user_access_token` for a permission-faithful crawl; `im:message.group_msg`
-        (full history) is sensitive + platform-reviewed → gate behind review + retention policy.
-      - Rate limits ~5 req/s/chat — backoff + paging.
-- [ ] **Google Drive crawler** (`ingestion/gdrive.py`): `files.list` walk + `files.export`.
-- [ ] **Notion crawler** (`ingestion/notion.py`): search → blocks.
-- [ ] **Organize/normalize pass:** dedupe, title/section extraction, freshness/`decay_at`,
-      provenance (so retrieved corpus is attributable + can be re-synced on change).
-- [ ] **Re-sync:** incremental refresh on doc-change events (Lark drive subscription / Drive push).
-- [ ] **Retrieval blend:** fuse corpus index + distilled interaction memory at query time.
-- [ ] **Privacy:** per-source consent, right-to-erasure on distilled memory, private-source exclusion (hard gate).
+- [x] **Lark wiki crawler** (`ingest/crawler.py`) via `lark-cli`: wiki spaces → nodes (recurse on
+      `has_child`) → docx `raw_content`. Rides the authorized user token (permission-faithful).
+- [x] **Index:** chunk → **SQLite FTS5** (BM25) corpus, **workspace-scoped + fenced** (`corpus_*` store methods).
+- [x] **Retrieval blend:** corpus_search fused into the orchestrator's system prompt at query time.
+- [x] **CLI:** `agent-tag lark-spaces`, `agent-tag ingest --space <id>`; **Knowledge page** in the console.
+- [ ] **Embeddings (upgrade from FTS5):** pluggable embedder (BYO key) → vector index for semantic recall.
+- [ ] **Storage swap:** `PostgresStore` + pgvector for scale (in-memory/sqlite stay the defaults).
+- [ ] **More sources:** Google Drive (`files.list`/`export`), Notion (search→blocks), Lark Sheets/Bitable readers.
+- [ ] **Organize/normalize + re-sync:** dedupe, section extraction, freshness/`decay_at`, incremental refresh on doc-change.
+- [ ] **Privacy:** per-source consent, right-to-erasure, private-source exclusion (hard gate).
 
 ## 🔜 Platform adapters (this build scaffolds; needs creds to live-test)
 - [~] Lark adapter — WS long-conn (`open.larksuite.com`), proactive send, streaming cards, files

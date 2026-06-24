@@ -44,6 +44,53 @@ The admin console is the control plane — no config files to hand-edit. The flo
 
 For Lark app creation (scopes, bot, long-connection events, adding the bot to a group), see **[`docs/lark-setup.md`](docs/lark-setup.md)**. For deployment, env vars, the admin token, and backups, see **[`docs/deploy.md`](docs/deploy.md)**.
 
+### Recommended Lark setup — Lark CLI
+
+There are **two Lark adapters**, selected by `AGENT_TAG_ADAPTER` (or the
+**Enabled chat platforms** field in the console):
+
+| Adapter | What it is | When to use |
+|---------|-----------|-------------|
+| **`larkcli`** (recommended, smooth) | Rides the official [Lark CLI](https://github.com/larksuite/cli) — you authorize once with a click-a-link OAuth and Agent Tag shells out to the `lark-cli` binary for events, sending, and the corpus crawl. No app scopes to hand-configure. | The fast path for most setups. |
+| **`lark`** (advanced) | A custom Lark app via the `lark-oapi` SDK over a WebSocket long connection. You create the app, add scopes, and publish a version yourself. | Containerized / headless deploys, or when you can't run the `lark-cli` binary on the host. |
+
+The smooth path:
+
+```bash
+npm install -g @larksuite/cli   # or build/install per the lark-cli README
+lark-cli config init            # one-time: enter app credentials
+lark-cli auth login             # opens a click-to-authorize link in your browser
+```
+
+Then point Agent Tag at it and start the runtime:
+
+```bash
+export AGENT_TAG_ADAPTER=larkcli   # or set "Enabled chat platforms" = larkcli in the console
+agent-tag serve
+```
+
+`lark-cli` stores its auth in `~/.lark-cli/`; Agent Tag reads that to act as you.
+
+> **Single-instance event lock.** The `larkcli` adapter consumes the Lark event
+> stream through `lark-cli`. Don't run a **second** `lark-cli` event consumer
+> (another `agent-tag serve`, or a separate `lark-cli` long-connection session)
+> against the same auth at the same time — only one consumer should hold the
+> event stream, or events will be split/dropped.
+
+### Knowledge base (ingest your Lark wiki)
+
+Agent Tag can ingest and index your existing **Lark wiki** so the teammate
+answers from your corpus. This rides the same `lark-cli` auth as the `larkcli`
+adapter, so authorize Lark CLI first (above).
+
+```bash
+agent-tag lark-spaces                 # list your Lark wiki spaces (space_id + name)
+agent-tag ingest --space <space_id>   # crawl + index one space into the knowledge base
+```
+
+The admin console also has a **Knowledge** page showing what's indexed (docs,
+chunks, sources) and lets you ingest a space from the browser.
+
 ### Zero-credential demo
 
 No accounts, no keys — chat with the teammate in your terminal and watch per-channel memory stay isolated:

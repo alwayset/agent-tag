@@ -97,6 +97,20 @@ class MemoryItem:
 
 
 @dataclass(slots=True)
+class CorpusChunk:
+    """A chunk of an ingested org document (Lark wiki/doc/drive, etc.), indexed
+    for query-time retrieval. Workspace-scoped — the org knowledge base (智库)."""
+    workspace_id: str
+    source: str            # e.g. "lark-wiki:<space_id>"
+    doc_id: str
+    title: str
+    url: str
+    chunk_idx: int
+    text: str
+    score: float = 0.0
+
+
+@dataclass(slots=True)
 class AuditEvent:
     id: str
     ts: float

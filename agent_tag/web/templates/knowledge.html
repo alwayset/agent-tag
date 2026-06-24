@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Knowledge{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Knowledge</h1>
+  <p>Ingest your existing Lark wiki into the teammate's knowledge base so it can answer from your real docs.</p>
+</div>
+
+<div class="section">
+  <h2>Lark CLI status</h2>
+  <div class="card">
+    {% if who %}
+      <div class="chips">
+        <span class="pill on">✓ Connected via Lark CLI as {{ who.user or "—" }}</span>
+        <span class="pill muted">app {{ who.app_id or "—" }}</span>
+      </div>
+    {% else %}
+      <div class="note">
+        Lark CLI not authorized — run <span class="mono">lark-cli auth login</span> in your terminal
+        (it opens a link to authorize), then reload this page.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>Indexed documents</h2>
+  <p class="section-sub">{{ total_chunks }} chunk{{ '' if total_chunks == 1 else 's' }} across {{ docs|length }} document{{ '' if docs|length == 1 else 's' }}.</p>
+  {% if docs %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Document</th><th class="num">Chunks</th><th>Source</th></tr>
+        </thead>
+        <tbody>
+          {% for d in docs %}
+            <tr>
+              <td>{% if d.url %}<a href="{{ d.url }}" target="_blank" rel="noopener">{{ d.title or d.doc_id }}</a>{% else %}{{ d.title or d.doc_id }}{% endif %}</td>
+              <td class="num">{{ d.chunks }}</td>
+              <td class="mono">{{ d.source }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-actions" style="margin-top:16px;">
+      <form method="post" action="/knowledge/clear" onsubmit="return confirm('Clear the entire knowledge base?');">
+        <button class="btn danger" type="submit">Clear all</button>
+      </form>
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-emoji">📚</div>
+      <h3>No documents indexed yet</h3>
+      <p>Ingest a Lark wiki space below to give your teammate something to answer from.</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="section">
+  <h2>Available Lark wiki spaces</h2>
+  {% if who and not spaces_error %}
+    {% if spaces %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Space</th><th>Space ID</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for s in spaces %}
+              <tr>
+                <td>{{ s.name or "—" }}</td>
+                <td class="mono">{{ s.space_id }}</td>
+                <td class="num">
+                  <form method="post" action="/knowledge/ingest" class="inline-form" style="justify-content:flex-end;">
+                    <input type="hidden" name="space_id" value="{{ s.space_id }}">
+                    <input type="hidden" name="name" value="{{ s.name }}">
+                    <button class="btn sm" type="submit">Ingest</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="margin-top:12px;">Ingest can take 10–120s for a large space — the page reloads when it finishes.</p>
+    {% else %}
+      <div class="empty">
+        <div class="empty-emoji">🗂️</div>
+        <h3>No wiki spaces found</h3>
+        <p>The authorized account doesn't have access to any Lark wiki spaces.</p>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="note">
+      {% if spaces_error %}
+        Couldn't list wiki spaces: <span class="mono">{{ spaces_error }}</span><br>
+      {% endif %}
+      Authorize the Lark CLI first — run <span class="mono">lark-cli auth login</span> in your terminal,
+      then reload this page to see your wiki spaces.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

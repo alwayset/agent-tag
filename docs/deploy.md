@@ -110,6 +110,34 @@ cp /var/lib/agent-tag/agent_tag.db ./agent_tag.backup.db
 Restore by stopping the process and replacing the file at `AGENT_TAG_DB` (and
 `agent_tag-wal` / `-shm` sidecar files if present), then start again.
 
+## Lark adapter choice and the `lark-cli` dependency
+
+Agent Tag has two Lark adapters (set via `AGENT_TAG_ADAPTER`, or the console's
+**Enabled chat platforms** field). They have different host requirements:
+
+- **`larkcli`** (the recommended smooth path) shells out to the official
+  `lark-cli` binary and reads its OAuth auth from `~/.lark-cli/`. So the host
+  running `agent-tag serve` **must have the `lark-cli` binary installed and an
+  authorized `~/.lark-cli/`** (run `lark-cli auth login` once on that host — see
+  [`docs/lark-setup.md`](lark-setup.md), Option A). The same applies to the
+  wiki ingest (`agent-tag lark-spaces` / `agent-tag ingest`).
+- **`lark`** (custom app, advanced) connects via the `lark-oapi` SDK using
+  App ID / App Secret you set in the console — **no external binary or
+  filesystem auth needed.**
+
+For a **Docker / containerized deploy**, `larkcli` therefore requires either
+installing `lark-cli` into the image and mounting an authorized `~/.lark-cli/`
+into the container (e.g. as a volume / bind mount on the user's home), or
+running `lark-cli auth login` from inside the container so the auth lands in
+the container's home. If that's inconvenient, use **Option B (custom app /
+`lark` adapter)** for containerized deploys — it needs only the credentials
+stored in the database and no host binary.
+
+> The `larkcli` adapter holds a single Lark event stream. Run only **one**
+> `lark-cli` event consumer per auth — don't run a second `agent-tag serve` (or
+> a separate `lark-cli` long-connection session) against the same `~/.lark-cli/`
+> at the same time.
+
 ## Restart to apply connection changes
 
 Connection changes made in the console (Lark/Slack/Discord creds, the active

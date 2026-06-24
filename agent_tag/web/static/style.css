@@ -110,6 +110,7 @@ h2 { font-size: 15px; margin: 0 0 14px; letter-spacing: -.01em; }
   padding: 20px;
 }
 .cards { display: grid; gap: 16px; }
+.cards.cols-4 { grid-template-columns: repeat(4, 1fr); }
 .cards.cols-3 { grid-template-columns: repeat(3, 1fr); }
 .cards.cols-2 { grid-template-columns: repeat(2, 1fr); }
 
@@ -243,5 +244,5 @@ textarea { resize: vertical; min-height: 64px; line-height: 1.45; }
 @media (max-width: 860px) {
   .sidebar { display: none; }
   .main { padding: 24px 20px 48px; }
-  .cards.cols-3, .cards.cols-2, .row, .row-3, .checkgrid { grid-template-columns: 1fr; }
+  .cards.cols-4, .cards.cols-3, .cards.cols-2, .row, .row-3, .checkgrid { grid-template-columns: 1fr; }
 }
