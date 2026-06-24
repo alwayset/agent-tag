@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Tag — an open AI teammate for your group chats</title>
+<meta name="description" content="Open-source, self-hosted AI teammate that lives in your Lark groups. Runs on any model, reads your org's docs, and you govern what it sees.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F3EC; --raised:#EFEBE0; --ink:#1B1A17; --muted:#6F6A60;
+    --line:#E2DCD0; --clay:#B5512E; --clay-ink:#9C4427;
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Hanken Grotesk",-apple-system,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    font-size:17px; line-height:1.62; font-weight:400;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  /* faint paper grain */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative; z-index:1; max-width:664px; margin:0 auto; padding:0 26px}
+  a{color:inherit; text-decoration:none}
+  a.link{
+    color:var(--clay-ink); background-image:linear-gradient(var(--clay),var(--clay));
+    background-size:0% 1px; background-position:0 100%; background-repeat:no-repeat;
+    transition:background-size .28s ease;
+  }
+  a.link:hover,a.link:focus-visible{background-size:100% 1px}
+  :focus-visible{outline:2px solid var(--clay); outline-offset:3px; border-radius:2px}
+
+  /* header */
+  header{display:flex; align-items:baseline; justify-content:space-between; padding:34px 0}
+  .mark{font-family:var(--serif); font-weight:600; font-size:1.16rem; letter-spacing:-.01em}
+  .mark .at{color:var(--clay)}
+  nav{font-family:var(--mono); font-size:.74rem; letter-spacing:.02em}
+  nav a{color:var(--muted)} nav a:hover{color:var(--ink)}
+
+  /* hero */
+  .hero{padding:34px 0 18px}
+  h1{
+    font-family:var(--serif); font-weight:500; font-size:clamp(2.3rem,7vw,3.5rem);
+    line-height:1.06; letter-spacing:-.018em; max-width:13ch;
+  }
+  h1 .at{color:var(--clay)}
+  .lead{margin-top:1.4rem; font-size:1.12rem; color:#4a463e; max-width:50ch}
+  .meta{
+    margin-top:1.8rem; font-family:var(--mono); font-size:.74rem; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .meta span{white-space:nowrap}
+  .meta i{color:var(--clay); font-style:normal; margin:0 .5em}
+  .cta{margin-top:2.2rem; display:flex; gap:1.6rem; align-items:center; font-size:.95rem}
+  .cta a{font-family:var(--mono); font-size:.82rem; letter-spacing:.02em}
+  .btn{
+    color:var(--paper)!important; background:var(--ink); padding:.62rem 1.05rem; border-radius:7px;
+    transition:background .2s ease;
+  }
+  .btn:hover{background:var(--clay-ink)}
+
+  /* sections */
+  section{margin-top:5.2rem}
+  .rule{border:0; border-top:1px solid var(--line); margin:0}
+  .kicker{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--clay); margin:2.6rem 0 1.7rem;
+  }
+
+  /* what-it-is list */
+  dl.facts dt{font-family:var(--serif); font-weight:600; font-size:1.18rem; letter-spacing:-.01em}
+  dl.facts dd{color:var(--muted); margin:.3rem 0 0; max-width:54ch}
+  dl.facts div{padding:1.45rem 0; border-top:1px solid var(--line)}
+  dl.facts div:first-of-type{border-top:0}
+
+  /* steps */
+  ol.steps{list-style:none; counter-reset:s}
+  ol.steps>li{
+    counter-increment:s; display:grid; grid-template-columns:2.7rem 1fr; gap:.2rem 1.1rem;
+    padding:1.9rem 0; border-top:1px solid var(--line);
+  }
+  ol.steps>li:first-child{border-top:0; padding-top:.4rem}
+  ol.steps>li::before{
+    content:counter(s,decimal-leading-zero); grid-row:1/span 3;
+    font-family:var(--serif); font-weight:500; font-size:1.5rem; color:var(--clay);
+    font-variant-numeric:tabular-nums; line-height:1.1;
+  }
+  .step-t{font-weight:600; font-size:1.08rem; letter-spacing:-.005em}
+  .step-d{color:var(--muted); margin-top:.18rem; font-size:.98rem}
+  .cmd{position:relative; margin-top:.9rem}
+  .cmd pre{
+    font-family:var(--mono); font-size:.8rem; line-height:1.75; color:#33302a;
+    background:var(--raised); border:1px solid var(--line); border-radius:9px;
+    padding:.85rem 3.2rem .85rem 1rem; overflow-x:auto;
+  }
+  .cmd pre .c{color:var(--muted)} /* inline comment */
+  .copy{
+    position:absolute; top:.55rem; right:.55rem; font-family:var(--mono); font-size:.66rem;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--muted);
+    background:transparent; border:1px solid var(--line); border-radius:5px;
+    padding:.24rem .45rem; cursor:pointer; transition:.18s ease;
+  }
+  .copy:hover{color:var(--clay-ink); border-color:var(--clay)}
+  .copy.done{color:var(--clay-ink); border-color:var(--clay)}
+
+  /* footer */
+  footer{margin:5.4rem 0 3.4rem; padding-top:1.7rem; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:.74rem; color:var(--muted); display:flex;
+    justify-content:space-between; gap:1rem; flex-wrap:wrap}
+  footer a{color:var(--muted)} footer a:hover{color:var(--ink)}
+  .aside{color:var(--muted); font-size:.95rem; max-width:54ch; margin-top:1.2rem}
+  .aside b{color:var(--ink); font-weight:600}
+
+  /* entrance */
+  [data-reveal]{opacity:0; transform:translateY(9px); animation:rise .7s cubic-bezier(.2,.6,.2,1) forwards}
+  @keyframes rise{to{opacity:1; transform:none}}
+  @media (prefers-reduced-motion:reduce){[data-reveal]{animation:none; opacity:1; transform:none}}
+
+  @media (max-width:520px){
+    body{font-size:16px}
+    .cta{flex-direction:column; align-items:flex-start; gap:1rem}
+    ol.steps>li{grid-template-columns:1fr; gap:.1rem}
+    ol.steps>li::before{grid-row:auto; font-size:1.15rem; margin-bottom:.2rem}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header data-reveal>
+    <div class="mark"><span class="at">@</span>Agent&nbsp;Tag</div>
+    <nav><a href="https://github.com/your-org/agent-tag">GitHub ↗</a></nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <h1 data-reveal style="animation-delay:.05s">An open AI teammate that lives in your <span class="at">@</span>Lark groups.</h1>
+      <p class="lead" data-reveal style="animation-delay:.13s">
+        Self-hosted, runs on any model, and reads your organization's own docs.
+        Tag it in a channel and it answers from your knowledge — and you decide exactly what it can see.
+      </p>
+      <p class="meta" data-reveal style="animation-delay:.2s">
+        <span>Open source</span><i>·</i><span>Self-hosted</span><i>·</i><span>Any model</span><i>·</i><span>Lark-first</span>
+      </p>
+      <div class="cta" data-reveal style="animation-delay:.27s">
+        <a class="btn" href="#onboard">Onboard your org ↓</a>
+        <a class="link" href="https://github.com/your-org/agent-tag">Read the source</a>
+      </div>
+    </div>
+
+    <section>
+      <hr class="rule">
+      <p class="kicker">What it is</p>
+      <dl class="facts">
+        <div>
+          <dt>Shared, not personal.</dt>
+          <dd>One teammate the whole channel talks to — with memory scoped to that channel, and nowhere else.</dd>
+        </div>
+        <div>
+          <dt>It knows your org.</dt>
+          <dd>Point it at your Lark wiki; it indexes the docs and answers from them, with the source attached.</dd>
+        </div>
+        <div>
+          <dt>Yours to govern.</dt>
+          <dd>Per-channel tools, token budgets, an audit log, and outbound redaction. Self-hosted, bring your own model.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section id="onboard">
+      <hr class="rule">
+      <p class="kicker">Onboard your organization on Lark</p>
+      <ol class="steps">
+        <li>
+          <div class="step-t">Install</div>
+          <div class="step-d">Get Agent Tag and the Lark CLI — that's the whole toolchain.</div>
+          <div class="cmd"><pre>git clone https://github.com/your-org/agent-tag &amp;&amp; cd agent-tag
+pip install -e '.[all]'
+npm install -g @larksuite/cli</pre></div>
+        </li>
+        <li>
+          <div class="step-t">Authorize Lark</div>
+          <div class="step-d">Run one command, click the link it prints, sign in as a workspace admin. That's the consent — no app scopes to hand-configure.</div>
+          <div class="cmd"><pre>lark-cli auth login   <span class="c"># opens a link → approve in your browser</span></pre></div>
+        </li>
+        <li>
+          <div class="step-t">Connect a model</div>
+          <div class="step-d">Bring your own API key, or use the Claude Code / Codex plan you already pay for. Set it once in the console.</div>
+          <div class="cmd"><pre>agent-tag serve            <span class="c"># open localhost:8765 → Connections</span>
+<span class="c"># paste an API key, or pick your local coding-plan CLI</span></pre></div>
+        </li>
+        <li>
+          <div class="step-t">Ingest your knowledge</div>
+          <div class="step-d">Index a Lark wiki space so the teammate answers from your real docs. One command, or one click on the Knowledge page.</div>
+          <div class="cmd"><pre>agent-tag lark-spaces             <span class="c"># list your wiki spaces</span>
+agent-tag ingest --space &lt;space_id&gt;</pre></div>
+        </li>
+        <li>
+          <div class="step-t">Go live</div>
+          <div class="step-d">Add the bot to a Lark group and tag it. Anyone in the channel can ask; it replies in the thread, grounded in your knowledge.</div>
+          <div class="cmd"><pre>agent-tag serve   <span class="c"># add the bot to a group, then:  @Agent Tag what's our deploy process?</span></pre></div>
+        </li>
+      </ol>
+      <p class="aside">
+        <b>Already on Slack or Discord too?</b> Same teammate, same setup — flip the adapter. Lark is just where it starts.
+      </p>
+    </section>
+  </main>
+
+  <footer data-reveal>
+    <span>Apache-2.0 · self-hosted · BYO model</span>
+    <span><a href="https://github.com/your-org/agent-tag">github.com/your-org/agent-tag</a></span>
+  </footer>
+
+</div>
+
+<script>
+  document.querySelectorAll('.cmd').forEach(function(box){
+    var pre = box.querySelector('pre');
+    var btn = document.createElement('button');
+    btn.className = 'copy'; btn.type = 'button'; btn.textContent = 'copy';
+    btn.addEventListener('click', function(){
+      // copy the commands without the inline comments
+      var text = Array.from(pre.childNodes).map(function(n){
+        return n.nodeType === 3 ? n.textContent : (n.classList && n.classList.contains('c') ? '' : n.textContent);
+      }).join('').replace(/[ \t]+\n/g,'\n').trim();
+      navigator.clipboard.writeText(text).then(function(){
+        btn.textContent = 'copied'; btn.classList.add('done');
+        setTimeout(function(){ btn.textContent = 'copy'; btn.classList.remove('done'); }, 1400);
+      });
+    });
+    box.appendChild(btn);
+  });
+</script>
+</body>
+</html>
