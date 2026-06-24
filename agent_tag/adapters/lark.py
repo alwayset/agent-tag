@@ -201,6 +201,7 @@ class LarkAdapter(Adapter):
             .register_p2_im_message_receive_v1(self._on_message)
             .build()
         )
+
         # ws.Client.start() is synchronous + blocking and runs its OWN asyncio
         # loop via run_until_complete. So it must own a fresh event loop on the
         # worker thread — and the Client must be CONSTRUCTED on that same thread,
