@@ -46,9 +46,9 @@ Verified CLI flags (2026-06):
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import shutil
+import tempfile
 import warnings
 from collections.abc import AsyncIterator
 
@@ -99,6 +99,10 @@ class CliAcpBackend(BackendAdapter):
         # Config.cli_command (default "claude").
         self.cli_command: str = getattr(config, "cli_command", None) or "claude"
         self.model: str | None = getattr(config, "model", None)
+        # Coding-agent CLIs explore their working directory. We run them in an
+        # isolated EMPTY dir so the bot answers from the provided context only and
+        # never reads the host's filesystem (correctness + a real data-leak guard).
+        self._workdir: str | None = None
 
     # ----- prompt assembly ---------------------------------------------------
 
@@ -120,9 +124,14 @@ class CliAcpBackend(BackendAdapter):
         """
         user_text = self._last_user_message(req.messages)
         system = (req.system or "").strip()
+        # The CLIs are autonomous agents; steer them to behave as a chat teammate
+        # that answers from the supplied context rather than going tool/file hunting.
+        guard = ("\n\n(Answer the message above directly and concisely as a chat reply, using ONLY "
+                 "the context provided above. Do NOT read local files, run shell/git commands, "
+                 "search the web, or use any tools.)")
         if system:
-            return f"{system}\n\n---\n\n{user_text}"
-        return user_text
+            return f"{system}\n\n---\n\n{user_text}{guard}"
+        return f"{user_text}{guard}"
 
     def _is_codex(self) -> bool:
         # Match on the basename so "/usr/local/bin/codex" also counts.
@@ -174,12 +183,16 @@ class CliAcpBackend(BackendAdapter):
         model = req.model or self.model
         argv = self._build_argv(prompt, model)
 
+        if self._workdir is None:
+            self._workdir = tempfile.mkdtemp(prefix="agent_tag_cli_")
+
         try:
             proc = await asyncio.create_subprocess_exec(
                 *argv,
                 stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                cwd=self._workdir,
             )
         except (OSError, ValueError) as exc:
             yield Delta(type="error", text=f"failed to launch '{self.cli_command}': {exc}")
@@ -249,3 +262,8 @@ class CliAcpBackend(BackendAdapter):
         # The plain-text CLI output carries no token accounting. (stream-json /
         # `codex exec --json` expose usage, but we don't parse those here.)
         return Usage()
+
+    async def close(self) -> None:
+        if self._workdir:
+            shutil.rmtree(self._workdir, ignore_errors=True)
+            self._workdir = None
