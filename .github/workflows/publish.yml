@@ -33,6 +33,10 @@ jobs:
   publish:
     name: publish to PyPI (trusted publishing)
     needs: build
+    # Skipped until PyPI is wired up: set repo variable PYPI_ENABLED=true once the
+    # PyPI project + trusted publisher exist (see RELEASING.md). Until then a
+    # release still builds + validates the wheel, but won't fail on upload.
+    if: ${{ vars.PYPI_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     # The `pypi` environment is where the trusted publisher is configured on
     # PyPI (project: agent-tag). Required for OIDC to be accepted.

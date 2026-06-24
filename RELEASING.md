@@ -23,6 +23,10 @@ requires a logged-in PyPI session.
 3. (Recommended) In the GitHub repo, create an **Environment** named `pypi`
    (Settings → Environments) so you can add release protection rules / required
    reviewers if desired. The workflow references `environment: pypi`.
+4. Enable the publish step: add a repo **variable** `PYPI_ENABLED` = `true`
+   (Settings → Secrets and variables → Actions → Variables, or
+   `gh variable set PYPI_ENABLED -b true`). Until this is set the publish job is
+   **skipped** — releases still build + validate the wheel but won't fail on upload.
 
 The `Owner`, `Repository`, `Workflow`, and `Environment` values must match the
 workflow exactly, or PyPI will reject the OIDC token.
