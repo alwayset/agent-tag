@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Workspace{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Workspace</h1>
+  <p>{{ org.name if org else "Your organization" }} — people and the channels your teammate lives in.</p>
+</div>
+
+<div class="section">
+  <h2>Channels</h2>
+  {% if channels %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Channel</th><th>Platform</th><th>External ID</th><th>Backend</th><th>Ambient</th><th>Budget</th><th></th></tr></thead>
+        <tbody>
+          {% for c in channels %}
+            <tr>
+              <td><a href="/channels/{{ c.id }}">{{ c.label }}</a></td>
+              <td><span class="pill muted">{{ c.platform }}</span></td>
+              <td class="mono">{{ c.external_id }}</td>
+              <td class="mono">{{ c.backend }}</td>
+              <td>{% if c.ambient %}<span class="pill on">on</span>{% else %}<span class="pill off">off</span>{% endif %}</td>
+              <td class="mono">{{ '{:,}'.format(c.budget) if c.budget else 'unlimited' }}</td>
+              <td><a class="btn ghost sm" href="/channels/{{ c.id }}">Edit policy</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-emoji">💬</div>
+      <h3>No channels bound yet</h3>
+      <p>Bind a chat channel below to give your teammate a home.</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="section">
+  <div class="cards cols-2">
+    <div class="card">
+      <h2>Bind a channel</h2>
+      <form method="post" action="/channels/new" class="form">
+        <div class="field">
+          <label for="platform">Platform</label>
+          <select id="platform" name="platform">
+            <option value="lark">Lark</option>
+            <option value="slack">Slack</option>
+            <option value="discord">Discord</option>
+            <option value="console">Console</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="external_id">External channel / chat ID</label>
+          <input type="text" id="external_id" name="external_id" placeholder="oc_xxx / C0123 / 9876…">
+          <div class="hint">The platform-native id of the chat to bind.</div>
+        </div>
+        <div class="field">
+          <label for="name">Friendly name</label>
+          <input type="text" id="name" name="name" placeholder="e.g. #product-team">
+        </div>
+        <div class="form-actions"><button class="btn" type="submit">Bind channel</button></div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Add a user</h2>
+      <form method="post" action="/users/new" class="form">
+        <div class="field">
+          <label for="display_name">Display name</label>
+          <input type="text" id="display_name" name="display_name" placeholder="Jane Doe">
+        </div>
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            {% for r in roles %}<option value="{{ r }}" {{ 'selected' if r == 'member' else '' }}>{{ r }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="uplatform">Platform</label>
+            <select id="uplatform" name="platform">
+              <option value="">— none —</option>
+              <option value="lark">lark</option>
+              <option value="slack">slack</option>
+              <option value="discord">discord</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="external_user_id">Platform user ID</label>
+            <input type="text" id="external_user_id" name="external_user_id" placeholder="ou_xxx / U0123…">
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn" type="submit">Add user</button></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>People</h2>
+  {% if users %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Name</th><th>Role</th><th>Identities</th></tr></thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td>{{ u.display_name }}</td>
+              <td><span class="pill muted">{{ u.role }}</span></td>
+              <td class="mono">{{ u.identities }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty">
+      <div class="empty-emoji">👥</div>
+      <h3>No users yet</h3>
+      <p>Add a teammate above, or they’ll be auto-enrolled on first @-mention.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

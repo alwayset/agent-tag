@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Connections{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Connections</h1>
+  <p>Credentials for your chat platforms and model backends. Secrets are stored locally and never shown back to you.</p>
+</div>
+
+<form method="post" action="/connections" class="form">
+  {% for group, specs in groups.items() %}
+    <div class="card">
+      <h2>{{ group }}</h2>
+      {% if group.startswith("Backend — Coding plan") %}
+        <div class="note" style="margin-bottom:16px;">
+          Coding-plan via your own local CLI runs on <strong>YOUR</strong> plan (self-host only).
+          For a hosted/multi-tenant bot use an API key.
+        </div>
+      {% endif %}
+      <div class="form">
+        {% for f in specs %}
+          <div class="field">
+            <label for="{{ f.key }}">{{ f.label }}</label>
+            {% if f.secret %}
+              <input type="password" id="{{ f.key }}" name="{{ f.key }}"
+                     placeholder="{{ 'unchanged' if f.secret_set else (f.placeholder or '') }}">
+            {% else %}
+              <input type="text" id="{{ f.key }}" name="{{ f.key }}"
+                     value="{{ f.value }}" placeholder="{{ f.placeholder }}">
+            {% endif %}
+            {% if f.help %}<div class="hint">{{ f.help }}</div>{% endif %}
+            {% if f.secret and f.secret_set %}<div class="hint">A value is set — leave blank to keep it.</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+  <div class="form-actions">
+    <button class="btn" type="submit">Save connections</button>
+    <span class="muted">Changes to chat adapters take effect on the next restart.</span>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<div class="empty" style="margin-top:40px;">
+  <div class="empty-emoji">🔍</div>
+  <h3>That {{ what }} doesn’t exist</h3>
+  <p>It may have been removed, or the link is stale.</p>
+  <a class="btn" href="{{ back }}">Go back</a>
+</div>
+{% endblock %}

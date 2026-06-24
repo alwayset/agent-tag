@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <p>Your shared AI teammate at a glance.</p>
+</div>
+
+{% if all_done %}
+  <div class="banner-ok">You’re all set — Agent Tag is configured and bound to a channel.</div>
+{% endif %}
+
+<div class="section">
+  <h2>Setup checklist</h2>
+  <div class="checklist">
+    {% for item in checklist %}
+      <div class="check-row {{ 'done' if item.done else '' }}">
+        <div class="check-mark {{ 'yes' if item.done else 'no' }}">{{ '✓' if item.done else '' }}</div>
+        <div class="check-body">
+          <div class="check-label {{ 'done' if item.done else '' }}">{{ item.label }}</div>
+          {% if not item.done %}<div class="check-hint">{{ item.hint }}</div>{% endif %}
+        </div>
+        {% if not item.done %}
+          <a class="btn sm" href="{{ item.link }}">Fix this →</a>
+        {% else %}
+          <span class="pill on">Done</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="section">
+  <h2>At a glance</h2>
+  <div class="cards cols-3">
+    <div class="card stat"><div class="stat-num">{{ counts.channels }}</div><div class="stat-label">Bound channels</div></div>
+    <div class="card stat"><div class="stat-num">{{ counts.users }}</div><div class="stat-label">Users</div></div>
+    <div class="card stat"><div class="stat-num">{{ counts.memory }}</div><div class="stat-label">Memory items</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="cards cols-2">
+    <div class="card">
+      <h2>Running backends</h2>
+      {% if backends %}
+        <div class="chips">
+          {% for b in backends %}
+            <span class="pill {{ '' if b == default_backend else 'muted' }}">{{ b }}{% if b == default_backend %} · default{% endif %}</span>
+          {% endfor %}
+        </div>
+        {% if default_model %}<p class="muted" style="margin-top:12px;">Default model: <span class="mono">{{ default_model }}</span></p>{% endif %}
+      {% else %}
+        <p class="muted">No backends are running. <a href="/connections">Add an API key</a> to bring one online.</p>
+      {% endif %}
+    </div>
+    <div class="card">
+      <h2>Enabled chat platforms</h2>
+      {% if enabled_adapters %}
+        <div class="chips">
+          {% for a in enabled_adapters %}<span class="pill">{{ a }}</span>{% endfor %}
+        </div>
+        <p class="muted" style="margin-top:12px;">Configure credentials on the <a href="/connections">Connections</a> page, then restart <span class="mono">agent-tag serve</span>.</p>
+      {% else %}
+        <p class="muted">No chat platforms enabled yet. <a href="/connections">Enable one</a> to start chatting.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

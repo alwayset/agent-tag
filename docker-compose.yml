@@ -1,0 +1,20 @@
+# One-command path: `docker compose up`.
+# Then open http://localhost:8765 and configure everything from the admin console.
+services:
+  agent-tag:
+    build: .
+    image: agent-tag
+    ports:
+      - "8765:8765"
+    # Infra config (admin token, etc.) comes from .env; connection creds
+    # (Lark/Slack/Discord + backend keys) are set in the admin console UI.
+    env_file: .env
+    environment:
+      # Keep the SQLite db on the named volume regardless of .env.
+      AGENT_TAG_DB: /data/agent_tag.db
+    volumes:
+      - agent_tag_data:/data
+    restart: unless-stopped
+
+volumes:
+  agent_tag_data:

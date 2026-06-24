@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Usage{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Token usage</h1>
+  <p>Tokens consumed per channel, against each channel’s budget.</p>
+</div>
+
+{% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Channel</th><th>Input</th><th>Output</th><th>Total</th><th>Budget</th><th style="width:200px;">Usage</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.channel }}</td>
+            <td class="num mono">{{ '{:,}'.format(r.input) }}</td>
+            <td class="num mono">{{ '{:,}'.format(r.output) }}</td>
+            <td class="num mono">{{ '{:,}'.format(r.total) }}</td>
+            <td class="num mono">{{ '{:,}'.format(r.budget) if r.budget else 'unlimited' }}</td>
+            <td>
+              {% if r.budget %}
+                <div class="bar {{ 'over' if r.pct >= 100 else '' }}"><span style="width:{{ r.pct }}%;"></span></div>
+                <div class="bar-label">{{ r.pct }}% of budget</div>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty-emoji">📊</div>
+    <h3>No usage recorded yet</h3>
+    <p>Token usage accrues as your teammate responds. Set per-channel budgets in each channel’s policy.</p>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>{{ label }}</h1>
+  <p><span class="pill muted">{{ channel.platform }}</span> <span class="mono">{{ channel.external_id }}</span></p>
+</div>
+
+<p><a href="/workspace">← Back to workspace</a> · <a href="/channels/{{ channel.id }}/memory">View memory →</a></p>
+
+<form method="post" action="/channels/{{ channel.id }}" class="form" style="margin-top:18px;">
+  <div class="card">
+    <h2>Identity</h2>
+    <div class="form">
+      <div class="field">
+        <label for="display_name">Display name</label>
+        <input type="text" id="display_name" name="display_name" value="{{ policy.display_name }}" placeholder="{{ channel.name }}">
+      </div>
+      <div class="field">
+        <label>Memory namespace</label>
+        <input type="text" value="{{ policy.memory_namespace }}" disabled>
+        <div class="hint">Hard-isolation key — read only.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Model</h2>
+    <div class="row">
+      <div class="field">
+        <label for="backend">Backend</label>
+        <select id="backend" name="backend">
+          {% for b in all_backends %}
+            <option value="{{ b }}" {{ 'selected' if b == policy.backend else '' }} {{ 'disabled' if b not in backends else '' }}>
+              {{ b }}{{ '' if b in backends else ' (not available)' }}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="hint">Available now: {{ backends|join(', ') if backends else 'none' }}.</div>
+      </div>
+      <div class="field">
+        <label for="model">Model id</label>
+        <input type="text" id="model" name="model" value="{{ policy.model or '' }}" placeholder="leave blank for backend default">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Behavior</h2>
+    <div class="form">
+      <div class="checkbox">
+        <input type="checkbox" id="require_mention" name="require_mention" {{ 'checked' if policy.require_mention else '' }}>
+        <div class="cb-body"><label for="require_mention">Require @-mention</label><div class="hint">Only respond when explicitly mentioned.</div></div>
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="redaction_enabled" name="redaction_enabled" {{ 'checked' if policy.redaction_enabled else '' }}>
+        <div class="cb-body"><label for="redaction_enabled">Redaction enabled</label><div class="hint">Scrub secrets before they reach the model.</div></div>
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="ambient_enabled" name="ambient_enabled" {{ 'checked' if policy.ambient_enabled else '' }}>
+        <div class="cb-body"><label for="ambient_enabled">Ambient nudges</label><div class="hint">Let the teammate post proactively on a fixed cadence.</div></div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="ambient_interval_hours">Ambient interval (hours)</label>
+          <input type="number" id="ambient_interval_hours" name="ambient_interval_hours" min="1" value="{{ policy.ambient_interval_hours }}">
+        </div>
+        <div class="field">
+          <label for="token_budget">Token budget</label>
+          <input type="number" id="token_budget" name="token_budget" min="0" value="{{ policy.token_budget if policy.token_budget else '' }}" placeholder="blank = unlimited">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Channel admins</h2>
+    {% if users %}
+      <div class="checkgrid">
+        {% for u in users %}
+          <div class="checkbox">
+            <input type="checkbox" id="admin_{{ u.id }}" name="admin_user_ids" value="{{ u.id }}" {{ 'checked' if u.id in policy.admin_user_ids else '' }}>
+            <div class="cb-body"><label for="admin_{{ u.id }}">{{ u.display_name }}</label></div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">No users yet — <a href="/workspace">add some</a> to grant channel-admin rights.</p>
+    {% endif %}
+  </div>
+
+  <div class="form-actions"><button class="btn" type="submit">Save policy</button>
+    <a class="btn ghost" href="/channels/{{ channel.id }}/memory">Memory</a></div>
+</form>
+{% endblock %}

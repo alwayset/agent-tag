@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Memory · {{ label }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Memory · {{ label }}</h1>
+  <p>Namespace <span class="mono">{{ policy.memory_namespace }}</span> — edit or remove what your teammate remembers.</p>
+</div>
+
+<p><a href="/memory">← All channels</a> · <a href="/channels/{{ channel.id }}">Channel policy →</a></p>
+
+{% if items %}
+  <div class="section" style="display:flex;flex-direction:column;gap:14px;">
+    {% for it in items %}
+      <div class="card">
+        <div class="chips" style="margin-bottom:10px;">
+          <span class="pill">{{ it.kind }}</span>
+          <span class="pill muted">{{ it.provenance or 'unknown' }}</span>
+          <span class="pill muted">{{ it.created_at | ts }}</span>
+        </div>
+        <form method="post" action="/memory/{{ it.id }}/edit" class="form">
+          <input type="hidden" name="back" value="/channels/{{ channel.id }}/memory">
+          <div class="field">
+            <textarea name="content" rows="3">{{ it.content }}</textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn sm" type="submit">Save</button>
+          </div>
+        </form>
+        <form method="post" action="/memory/{{ it.id }}/delete" style="margin-top:8px;"
+              onsubmit="return confirm('Delete this memory item?');">
+          <input type="hidden" name="back" value="/channels/{{ channel.id }}/memory">
+          <button class="btn danger sm" type="submit">Delete</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty-emoji">🧠</div>
+    <h3>No memory yet</h3>
+    <p>This channel hasn’t accrued any facts or decisions. Memory builds up as your teammate is used.</p>
+  </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Agent Tag{% endblock %} · Agent Tag</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">#</span>
+      <div>
+        <div class="brand-name">Agent Tag</div>
+        <div class="brand-sub">{{ org.name if org else "Admin console" }}</div>
+      </div>
+    </div>
+    <nav class="nav">
+      {% for key, label, href in nav %}
+        <a href="{{ href }}" class="nav-item {{ 'is-active' if active == key else '' }}">
+          <span class="nav-dot"></span>{{ label }}
+        </a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-foot">
+      {% if auth_enabled %}
+        <a href="/logout" class="nav-item subtle">Sign out</a>
+      {% endif %}
+      <div class="sidebar-tag">self-hosted teammate</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    {% if flash %}
+      <div class="flash">{{ flash }}</div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

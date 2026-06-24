@@ -1,0 +1,14 @@
+Agent Tag (working name)
+Copyright 2026 Agent Tag contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Optional, separately-installed dependencies retain their own licenses:
+  - lark-oapi (MIT)            — Lark/Feishu adapter
+  - slack-bolt (MIT)           — Slack adapter
+  - discord.py (MIT)           — Discord adapter
+  - anthropic (MIT)            — Claude backend
+  - openai (Apache-2.0/MIT)    — OpenAI backend
+
+The Lark transport design is informed by the open-source project cc-connect
+(chenhg5/cc-connect, MIT). Any reused code retains its original notices.
